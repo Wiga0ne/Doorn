@@ -9,14 +9,14 @@ from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import (BaseDocTemplate, PageTemplate, NextPageTemplate, Frame, Paragraph, Spacer, Image as RLImage,
-                                Table, TableStyle, PageBreak, KeepTogether)
+                                Table, TableStyle, PageBreak, CondPageBreak, KeepTogether)
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -189,7 +189,7 @@ T = {
    ["14", "IN", "Input jack."],
    ["15", "OUT", "Output jack."]],
  ctl_t="4. Controls in detail",
- ctl=[("GAIN", "From about 20 dB to 72 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit. The low end is filtered steeply before the clipping and follows your picking after it: full on the attack, it drops back as the note dies, so palm mutes stay tight."),
+ ctl=[("GAIN", "From about 20 dB to 72 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit. The low end is filtered steeply before the clipping and follows your picking after it: full on the attack, it drops back as the note dies, so palm mutes stay tight. The output also follows your picking dynamics (the clipping alone would flatten them): attacks come out in front and notes drop back naturally, so the sound never feels squashed."),
       ("BOOST", "As on the Thorn, the boost is <b>additive</b>: it is not a separate pedal in front, it adds its gain (0 to +14 dB, set with the small knob) to the GAIN and raises the input high-pass a little, so the attack gets tighter and the sustain longer. The small knob sets the amount; the BOOST footswitch turns it on and off."),
       ("LEVEL", "Audio taper: 0 = muted, noon about −15 dB, 3 o'clock about −7 dB, full = 0 dB. The three modes are levelled like on the pedal: SDT-2 slightly quieter, Laerm louder."),
       ("TREBLE · MIDS · BASS", "Active 3-band EQ after the distortion: bass shelf at 100 Hz (±15 dB), mid bell at <b>1 kHz</b> (±12 dB) for surgical presence shaping, treble shelf at 3 kHz (±15 dB). At noon each band is flat. The circuit itself has the deeply scooped mids of the Thorn (about -12 dB around 650 Hz, also with the EQ off): turn MIDS up to bring them back for leads."),
@@ -232,7 +232,8 @@ T = {
        ["1.3.0", "Sound matched on a recording of a real Thorn (settings of factory preset 10): much more gain from the start of the GAIN travel, the scooped mids of the pedal (about -16 dB around 750 Hz with the EQ at noon), fuller low end, softer top; preset 10 Thorn Reference"],
        ["1.3.1", "Status line and preset bar in a larger, standard sans-serif font (Poppins) for readability"],
        ["1.4.0", "Back to the 1.2 voicing (tight low end, natural dynamics) with more gain, a deeper mid scoop (about -8 dB around 700 Hz) and harder clipping; the boomy low end and the compressed feel of 1.3 are gone"],
-       ["1.5.0", "More gain (20 to 72 dB), deeper mid scoop (about -12 dB around 650 Hz), much tighter low end: 4th-order high-pass before the clipping, no more sub rumble after it, narrow bass bump instead of a wide shelf, and a low end that follows your picking (full on the attack, it drops back as the note dies) instead of smearing"]],
+       ["1.5.0", "More gain (20 to 72 dB), deeper mid scoop (about -12 dB around 650 Hz), much tighter low end: 4th-order high-pass before the clipping, no more sub rumble after it, narrow bass bump instead of a wide shelf, and a low end that follows your picking (full on the attack, it drops back as the note dies) instead of smearing"],
+       ["1.6.0", "The bite you got with the boost is now in the base sound (higher input high-pass, attack brought forward, harder clipping, more presence): no need to engage the boost for the cutting Thorn tone; the output follows your picking again (attacks in front, notes that drop back) instead of the flat, compressed feel; metal / stoner character of the real pedal: thick but firm low end, warm top, slightly fuzzy grain"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -262,7 +263,7 @@ T = {
    ["14", "IN", "Jack d'entrée."],
    ["15", "OUT", "Jack de sortie."]],
  ctl_t="4. Les commandes en détail",
- ctl=[("GAIN", "D'environ 20 dB à 72 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit. Le grave est filtré fortement avant l'écrêtage et suit votre jeu après : plein à l'attaque, il redescend quand la note s'éteint, les palm mutes restent nets."),
+ ctl=[("GAIN", "D'environ 20 dB à 72 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit. Le grave est filtré fortement avant l'écrêtage et suit votre jeu après : plein à l'attaque, il redescend quand la note s'éteint, les palm mutes restent nets. La sortie suit aussi la dynamique de votre jeu (l'écrêtage seul l'aplatirait) : les attaques ressortent et les notes retombent naturellement, le son n'est jamais écrasé."),
       ("BOOST", "Comme sur la Thorn, le boost est <b>additif</b> : ce n'est pas une pédale séparée placée devant, il ajoute son gain (0 à +14 dB, réglé avec le petit potard) au GAIN et remonte un peu le passe-haut d'entrée : l'attaque se resserre et le sustain s'allonge. Le petit potard règle la quantité ; le footswitch BOOST l'enclenche et le coupe."),
       ("LEVEL", "Courbe audio : 0 = coupé, midi environ −15 dB, 15 h environ −7 dB, à fond = 0 dB. Les trois modes sont équilibrés comme sur la pédale : SDT-2 un peu moins fort, Laerm plus fort."),
       ("TREBLE · MIDS · BASS", "EQ actif 3 bandes après la distorsion : plateau de graves à 100 Hz (±15 dB), cloche de médiums à <b>1 kHz</b> (±12 dB) pour sculpter précisément la présence, plateau d'aigus à 3 kHz (±15 dB). À midi, chaque bande est plate. Le circuit lui-même a les médiums très creusés de la Thorn (environ -12 dB vers 650 Hz, EQ off compris) : montez MIDS pour les retrouver en solo."),
@@ -305,7 +306,8 @@ T = {
        ["1.3.0", "Son calé sur un enregistrement d'une vraie Thorn (réglages du preset usine 10) : beaucoup plus de gain dès le début de la course du GAIN, médiums creusés comme sur la pédale (environ -16 dB vers 750 Hz avec l'EQ à midi), grave plus généreux, aigus plus doux ; preset 10 Thorn Reference"],
        ["1.3.1", "Ligne d'état et barre de presets dans une police standard sans empattement (Poppins), plus grande et plus lisible"],
        ["1.4.0", "Retour à la voix de la 1.2 (grave serré, dynamique naturelle) avec plus de gain, des médiums plus creusés (environ -8 dB vers 700 Hz) et un écrêtage plus franc ; le grave envahissant et l'impression de compression de la 1.3 disparaissent"],
-       ["1.5.0", "Plus de gain (20 à 72 dB), médiums plus creusés (environ -12 dB vers 650 Hz), basses beaucoup plus précises : passe-haut du 4e ordre avant l'écrêtage, plus de grondement sub après, bosse de grave étroite au lieu d'un plateau large, et un grave qui suit le jeu (plein à l'attaque, il redescend quand la note s'éteint) au lieu de baver"]],
+       ["1.5.0", "Plus de gain (20 à 72 dB), médiums plus creusés (environ -12 dB vers 650 Hz), basses beaucoup plus précises : passe-haut du 4e ordre avant l'écrêtage, plus de grondement sub après, bosse de grave étroite au lieu d'un plateau large, et un grave qui suit le jeu (plein à l'attaque, il redescend quand la note s'éteint) au lieu de baver"],
+       ["1.6.0", "Le mordant obtenu avec le boost fait maintenant partie du son de base (passe-haut d'entrée plus haut, attaque mise en avant, écrêtage plus franc, plus de présence) : plus besoin du boost pour le son tranché de la Thorn ; la sortie suit à nouveau le jeu (attaques devant, notes qui retombent) au lieu de l'effet compressé ; caractère metal / stoner de la vraie pédale : grave épais mais ferme, haut chaud, grain légèrement fuzz"]],
  ver_h=["Version", "Changements"]),
 }
 
@@ -342,9 +344,11 @@ def section(lang):
     f.append(KeepTogether([Spacer(1, 2 * mm), img(leds_img, W * 0.60), P(t["led_cap"], "small")]))
     f.append(Spacer(1, 3 * mm))
     f.append(KeepTogether([table([t["midi_hdr"]] + t["midi"], [42 * mm, W - 42 * mm])]))
-    f.append(P(t["win_t"], "h1")); f += [P(x) for x in t["win"]]
-    f.append(KeepTogether([img(bar_img, W * 0.55), P(t["bar_cap"], "small")]))
-    f.append(PageBreak())
+    f.append(P(t["win_t"], "h1")); f.append(P(t["win"][0]))
+    wt = Table([[[P(t["win"][1])], [img(bar_img, 62 * mm), P(t["bar_cap"], "small")]]], colWidths=[W - 66 * mm, 66 * mm])
+    wt.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (0, 0), 0)]))
+    f.append(wt)
+    f.append(CondPageBreak(150 * mm))
     f.append(P(t["pre_t"], "h1")); f += [P(x) for x in t["pre"]]
     rows = [t["fac_hdr"]]
     for i, (n, g, b, l, tr, mi, ba, eq, mo, bo) in enumerate(FACTORY):

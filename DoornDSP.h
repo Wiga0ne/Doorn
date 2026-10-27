@@ -28,7 +28,8 @@
 #include <algorithm>
 #include <cstring>
 
-// v1.5 : voix de la v1.2 avec plus de gain, mediums plus creuses et basses plus precises (filtrage 4e ordre avant l'ecretage)
+// v1.6 : son metal / stoner de la Thorn : mordant du boost dans la voix de base, grave epais mais ferme,
+// haut chaud, grain un peu fuzz ; dynamique de jeu rendue (anti-compression)
 #ifndef DOORN_SCOOP_HZ
  #define DOORN_SCOOP_HZ 650.0
 #endif
@@ -246,13 +247,14 @@ namespace doorn
     {
         static const ModeVoice v[3] =
         {
-            // v1.1 : passe-haut d'entree plus haut, coude des diodes plus dur, moins de biais -> plus precis, moins baveux
+            // v1.6 : le mordant du boost est integre a la voix de base (passe-haut d'entree plus haut, attaque mise en avant,
+            // ecretage plus franc, plus de presence) ; le boost s'ajoute toujours par-dessus
             // SDT-2 : plus compresse et sature, plus sombre, un peu moins fort
-            { 215.0f, 760.0f, 0.75f, 5.5f,   4.0f,  0.28f, 0.26f, 3.8f, 1.0f, 6200.0f,  3.5f, 5200.0f, -3.5f, 1.0f, -1.0f, 0.06f },
+            { 200.0f, 950.0f, 0.75f, 6.0f,   5.0f,  0.28f, 0.26f, 5.0f, 1.0f, 6200.0f,  5.5f, 5000.0f, -3.5f, 2.0f, -1.0f, 0.09f },
             // LAERM : plus ouvert, plus direct, plus fort (seuil haut type LED)
-            { 170.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.60f, 4.2f, 0.0f, 10500.0f, 2.5f, 7200.0f, -0.5f, 2.5f, -1.6f, 0.03f },
+            { 165.0f, 1300.0f, 0.60f, 4.0f, -1.5f,  0.70f, 0.60f, 5.5f, 0.0f, 10000.0f, 4.5f, 7000.0f, -1.0f, 3.0f, -1.6f, 0.05f },
             // SDT-1 : la Stampede d'origine (silicium a la masse, mediums chantants)
-            { 195.0f, 900.0f, 0.70f, 5.0f,   0.0f,  0.34f, 0.31f, 4.5f, 0.0f, 8200.0f,  3.5f, 6000.0f, -1.5f, 1.5f,  0.0f, 0.07f },
+            { 185.0f, 1100.0f, 0.70f, 6.0f,   2.0f,  0.34f, 0.31f, 6.0f, 0.0f, 7800.0f,  5.5f, 5600.0f, -2.0f, 2.5f,  0.0f, 0.09f },
         };
         return v[std::min (2, std::max (0, m))];
     }
@@ -293,7 +295,7 @@ namespace doorn
             st1lp.setLP (srO, st1Fc);
             post1.lowpass (srO, v.postLP * DOORN_LP_SCALE, 0.62);
             post2.lowpass (srO, v.postLP * DOORN_LP_SCALE * 1.6, 0.55);
-            outLow.peak (sr, 110.0, 1.1, v.lowShelfDb + DOORN_LOW_DB + 2.0);   // grave ferme et serre (bosse etroite)
+            outLow.peak (sr, 100.0, 0.8, v.lowShelfDb + DOORN_LOW_DB + 2.0);   // grave epais facon stoner, mais ferme (bosse, pas de plateau)
             outSub.highpass (sr, 55.0, 0.7);
             outHigh.highShelf (sr, v.highShelfHz, v.highShelfDb + DOORN_HIGH_DB);
             outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
@@ -345,6 +347,9 @@ namespace doorn
                 const float bg = 0.30f + 0.70f * rel;
                 const float lo = bassLP.process (y);
                 y += (bg - 1.0f) * lo;
+                // anti-compression (v1.6) : la sortie suit a nouveau le jeu (attaques devant, notes qui retombent),
+                // comme un ampli qui « respire » ; jusqu'a -9 dB quand la note s'eteint
+                y *= clampf (std::pow (rel + 1.0e-4f, 0.33f), 0.35f, 1.0f);
             }
             y = outPres.process (outHigh.process (outScoop.process (outLow.process (outSub.process (y)))));
             const float e = eqTreb.process (eqMid.process (eqBass.process (y)));
@@ -462,7 +467,7 @@ namespace doorn
             }
         }
 
-        float outTrim = 4.5f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = 5.5f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
