@@ -18,10 +18,10 @@ Usage personnel. Windows 11 et macOS (binaire universel).
 
 | Élément | Thorn / SDT-1 | Dans Doorn |
 |---|---|---|
-| GAIN | Distorsion dure, mur de son, passe en fuzz au-delà de 13 h | 14 à 66 dB répartis sur deux étages d'ampli op (alimentation ~18 V par pompe de charge : grande réserve), écrêtage par diodes à la masse, sur-échantillonnage x4 |
+| GAIN | Distorsion dure, mur de son, passe en fuzz au-delà de 13 h | 14 à 68 dB répartis sur deux étages d'ampli op (alimentation ~18 V par pompe de charge : grande réserve), écrêtage par diodes à la masse, sur-échantillonnage x4 |
 | LEVEL | Volume de sortie | Courbe audio, 0 = coupé, maxi = 0 dBFS de marge |
 | BOOST (petit potard + footswitch) | Boost réglable, **additif** : s'ajoute au gain, resserre l'attaque, ajoute du sustain | 0 à +14 dB avant l'écrêtage + passe-haut d'entrée remonté (grave plus serré) |
-| TREBLE / MIDS / BASS | EQ actif 3 bandes, médium à 1 kHz | Plateau grave 100 Hz ±15 dB, cloche 1 kHz ±12 dB, plateau aigu 3 kHz ±15 dB ; midi = plat. Voix du circuit calée sur un enregistrement de la vraie Thorn : médiums creusés (≈ −16 dB vers 750 Hz), grave généreux, aigus doux |
+| TREBLE / MIDS / BASS | EQ actif 3 bandes, médium à 1 kHz | Plateau grave 100 Hz ±15 dB, cloche 1 kHz ±12 dB, plateau aigu 3 kHz ±15 dB ; midi = plat. Voix du circuit calée sur un enregistrement de la vraie Thorn : médiums creusés (≈ −8 dB vers 700 Hz), grave serré, écrêtage franc |
 | EQ off / on | L'EQ off retire complètement le tone stack du circuit (Lennart dans un Ampeg V4, EQ off) | En OFF, l'EQ n'est plus dans le trajet du signal (fondu sans clic) |
 | Mode SDT-1 | Le son de la Stampede d'origine | Silicium à la masse, médiums qui chantent, harmoniques paires |
 | Mode SDT-2 | Plus compressé et saturé, un peu moins fort (Living Gate) | Étage de compression en plus, plus sombre, ≈ −3 dB |

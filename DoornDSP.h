@@ -28,35 +28,33 @@
 #include <algorithm>
 #include <cstring>
 
-// v1.3 : voix calee sur un enregistrement de la vraie Thorn (reglages de la photo : gain 11 h, level 13 h,
-// treble 13 h, mids midi, bass 15 h, EQ on, SDT-1) : mediums nettement creuses, grave genereux, aigus plus doux,
-// beaucoup plus de gain des le debut de la course du potard
+// v1.4 : voix de la v1.2 (grave serre, pas de compression en plus) avec plus de gain et des mediums plus creuses
 #ifndef DOORN_SCOOP_HZ
- #define DOORN_SCOOP_HZ 750.0
+ #define DOORN_SCOOP_HZ 700.0
 #endif
 #ifndef DOORN_SCOOP_DB
- #define DOORN_SCOOP_DB -16.0
+ #define DOORN_SCOOP_DB -8.0
 #endif
 #ifndef DOORN_SCOOP_Q
- #define DOORN_SCOOP_Q 0.40
+ #define DOORN_SCOOP_Q 0.65
 #endif
 #ifndef DOORN_LOW_DB
- #define DOORN_LOW_DB 6.0
+ #define DOORN_LOW_DB -2.5
 #endif
 #ifndef DOORN_HIGH_DB
- #define DOORN_HIGH_DB -9.0
+ #define DOORN_HIGH_DB 0.0
 #endif
 #ifndef DOORN_LP_SCALE
- #define DOORN_LP_SCALE 0.55
+ #define DOORN_LP_SCALE 1.0
 #endif
 #ifndef DOORN_G0
  #define DOORN_G0 14.0f
 #endif
 #ifndef DOORN_G1
- #define DOORN_G1 52.0f
+ #define DOORN_G1 54.0f
 #endif
 #ifndef DOORN_GEXP
- #define DOORN_GEXP 0.80f
+ #define DOORN_GEXP 1.0f
 #endif
 
 namespace doorn
@@ -250,11 +248,11 @@ namespace doorn
         {
             // v1.1 : passe-haut d'entree plus haut, coude des diodes plus dur, moins de biais -> plus precis, moins baveux
             // SDT-2 : plus compresse et sature, plus sombre, un peu moins fort
-            { 165.0f, 760.0f, 0.75f, 5.5f,   4.0f,  0.28f, 0.26f, 3.0f, 1.0f, 6200.0f,  3.5f, 5200.0f, -3.5f, 1.0f, -1.0f, 0.06f },
+            { 165.0f, 760.0f, 0.75f, 5.5f,   4.0f,  0.28f, 0.26f, 3.8f, 1.0f, 6200.0f,  3.5f, 5200.0f, -3.5f, 1.0f, -1.0f, 0.06f },
             // LAERM : plus ouvert, plus direct, plus fort (seuil haut type LED)
             { 120.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.60f, 4.2f, 0.0f, 10500.0f, 2.5f, 7200.0f, -0.5f, 2.5f, -1.6f, 0.03f },
             // SDT-1 : la Stampede d'origine (silicium a la masse, mediums chantants)
-            { 145.0f, 900.0f, 0.70f, 5.0f,   0.0f,  0.34f, 0.31f, 3.4f, 0.0f, 8200.0f,  3.5f, 6000.0f, -1.5f, 1.5f,  0.0f, 0.07f },
+            { 145.0f, 900.0f, 0.70f, 5.0f,   0.0f,  0.34f, 0.31f, 4.5f, 0.0f, 8200.0f,  3.5f, 6000.0f, -1.5f, 1.5f,  0.0f, 0.07f },
         };
         return v[std::min (2, std::max (0, m))];
     }
@@ -313,7 +311,7 @@ namespace doorn
             {
                 // etage 1 : gain + rails (pompe de charge ~18 V -> marge, coude doux), biais leger
                 float s = up[i] * g1 + v.bias * 0.25f;
-                s = s * 1.00f;                                   // rails a ~18 V : l'etage 1 reste propre plus longtemps
+                s = s * 0.75f;                                   // rails a ~18 V : l'etage 1 reste propre plus longtemps
                 s = (s / std::pow (1.0f + std::pow (std::abs (s), 3.0f), 1.0f / 3.0f)) * 1.6f;
                 s = st1lp.lp (s);
                 s = inter.hp (s);                               // liaison entre etages (enleve le biais)
@@ -444,7 +442,7 @@ namespace doorn
             }
         }
 
-        float outTrim = 7.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = 4.5f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
