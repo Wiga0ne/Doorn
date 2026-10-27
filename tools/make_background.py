@@ -307,6 +307,7 @@ canvas *= (1 - 0.6 * sh2)[..., None]
 full = Image.new('RGB', (W2, H2)); full.paste(pedal_s, (round(ox), round(oy)))
 fm_ = Image.new('L', (W2, H2), 0); fm_.paste(mask_s, (round(ox), round(oy)))
 fa = np.asarray(fm_).astype(np.float32)[..., None] / 255
+SIL = fa[..., 0].copy()             # silhouette (boitier + jacks) pour la couverture de la notice
 canvas = canvas * (1 - fa) + np.asarray(full).astype(np.float32) * fa
 
 # embases jack du kit Studio Wiga, sortant du dessus du boitier aux places d'origine (OUT a gauche, IN a droite)
@@ -324,6 +325,8 @@ for xc in (857, 1200):          # centres des inscriptions OUT / IN du visuel
     canvas[jy + 4:jy + 4 + jk.height, jx + 6:jx + 6 + jk.width] *= (1 - 0.55 * sm)[..., None]
     reg = canvas[jy:jy + jk.height, jx:jx + jk.width]
     canvas[jy:jy + jk.height, jx:jx + jk.width] = reg * (1 - ja[..., 3:]) + ja[..., :3] * 255 * ja[..., 3:]
+    SIL[jy:jy + jk.height, jx:jx + jk.width] = np.maximum(SIL[jy:jy + jk.height, jx:jx + jk.width], ja[..., 3])
+Image.fromarray((SIL * 255).astype(np.uint8)).save(os.path.join(HERE, 'pedal_mask.png'))
 
 
 # ---------------------------------------------------------------- 6. footswitches (photo Echoflex, rendu tools/controls_art.py)

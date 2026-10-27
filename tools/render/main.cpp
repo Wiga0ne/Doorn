@@ -33,6 +33,7 @@ int main (int argc, char** argv)
     shot ("doorn_boost",     5, true,  true,  false, DoornAudioProcessorEditor::baseH);
     shot ("doorn_bypass",    2, false, false, false, DoornAudioProcessorEditor::baseH);
     shot ("doorn_sdt2",      3, true,  false, false, DoornAudioProcessorEditor::baseH);
+    shot ("doorn_laerm",     4, true,  false, false, DoornAudioProcessorEditor::baseH);
 
     // test pedale d'expression : course 2..116 sur CC 20 (gain)
     {
