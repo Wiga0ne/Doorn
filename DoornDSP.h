@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cstring>
 
+// v2.4 : TREBLE peut monter beaucoup plus (+21 dB et brillance 4,5 kHz).
 // v2.3 : plus fuzz, moins distorsion (fuzz 62 %, diodes 60 %, fuzz plus poussee).
 // v2.2 : presence dans le bas rendue (grave +3 dB, bas-mediums 220 / 320 Hz remontes) en gardant les mediums / mediums-aigus.
 // v2.1 : moins sourd, voix stoner medium / medium-aigu : creux des mediums remplace par une poussee 900 Hz / 2 kHz,
@@ -324,7 +325,7 @@ namespace doorn
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &boostPres })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &eqTrebAir, &boostPres })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); fzHP.reset(); fzLP.reset(); bassLP.reset(); env = ref = 0.0f;
         }
@@ -357,7 +358,9 @@ namespace doorn
             eqBass.lowShelf (sr, 90.0, bassDb * 0.6, 0.7);
             eqBassPunch.peak (sr, 120.0, 1.2, bassDb > 0 ? bassDb * 0.75 : bassDb * 0.4);
             eqMid.peak (sr, 1000.0, 0.85, midDb);
-            eqTreb.highShelf (sr, 3000.0, trebDb, 0.7);
+            // v2.4 : TREBLE plus ample vers le haut (jusqu'a +21 dB + brillance vers 4,5 kHz), coupe inchangee (-15 dB)
+            eqTreb.highShelf (sr, 3000.0, trebDb > 0 ? trebDb * 1.4 : trebDb, 0.7);
+            eqTrebAir.peak (sr, 4500.0, 0.9, trebDb > 0 ? trebDb * 0.5 : 0.0);
         }
 
         // un echantillon ; g1 / g2 : gains des deux etages, eqMix : 0 = EQ retire, 1 = EQ actif
@@ -418,14 +421,14 @@ namespace doorn
                 y *= clampf (std::pow (rel + 1.0e-4f, 0.33f), 0.35f, 1.0f);
             }
             y = outHiMid.process (outMidPush.process (outPres.process (outHigh.process (outScoop.process (outFat.process (outLowMid.process (outLow.process (outSub.process (y)))))))));
-            const float e = eqTreb.process (eqMid.process (eqBassPunch.process (eqBass.process (y))));
+            const float e = eqTrebAir.process (eqTreb.process (eqMid.process (eqBassPunch.process (eqBass.process (y)))));
             return y + (e - y) * eqMix;
         }
 
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, boostPres;
+        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, eqTrebAir, boostPres;
         OnePole dcIn, dcOut, inter, st1lp, fzHP, fzLP;
         Biquad bassLP;
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;

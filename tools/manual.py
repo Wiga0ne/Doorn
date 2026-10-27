@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "2.3.0"
+VERSION = "2.4.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -177,7 +177,7 @@ T = {
    ["1", "GAIN", "Amount of distortion. Drag up / down, mouse wheel, double-click = noon."],
    ["2", "BOOST (small knob)", "Level of the boost, from 0 to +20 dB. Only heard when the BOOST footswitch is on: the transparent knob then lights up from inside and its cursor shows clearly."],
    ["3", "LEVEL", "Output volume."],
-   ["4", "TREBLE", "Treble shelf, ±15 dB, flat at noon."],
+   ["4", "TREBLE", "Treble shelf at 3 kHz: cut down to -15 dB, boost up to +21 dB with extra sparkle around 4.5 kHz; flat at noon."],
    ["5", "MIDS", "Mid bell at 1 kHz, ±12 dB, flat at noon."],
    ["6", "BASS", "Bass with punch: shelf at 90 Hz plus a presence bump around 120 Hz, ±15 dB, flat at noon; after the distortion, so it never adds compression."],
    ["7", "EQ switch", "Up = off (EQ lifted out of the circuit), down = on."],
@@ -193,7 +193,7 @@ T = {
  ctl=[("GAIN", "From about 26 dB to 72 dB of gain spread over two op-amp stages. The gain comes in early: the knob already gives a hard, edgy crunch at its start, and the full fuzz-like wall the Stampede is known for is there from about 9 o'clock; further up, the grain thickens and the sustain grows. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit. The low end is filtered steeply before the clipping and follows your picking after it: full on the attack, it drops back as the note dies, so palm mutes stay tight. Most of the bass is kept out of the clipping and added back after it, which is why the low-mids stay clean even at full gain; a broad low-mid bump around 320 Hz, added after the clipping, gives chords their body. A parallel fuzz layer (two cascaded, slightly asymmetric clipping stages, the way a Big Muff works) is blended with the distortion, and now leads it, for the thick, woolly fuzz grain of stoner guitars, and a wide bump around 220 Hz after the clipping gives the sound its fat. The output also follows your picking dynamics (the clipping alone would flatten them): attacks come out in front and notes drop back naturally, so the sound never feels squashed."),
       ("BOOST", "As on the Thorn, the boost is <b>additive</b>: it is not a separate pedal in front, it adds its gain (0 to +20 dB, set with the small knob, plus up to +4 dB of output and a push around 1.6 kHz so you clearly hear it come in) to the GAIN and raises the input high-pass a little, so the attack gets tighter and the sustain longer. The small knob sets the amount; the BOOST footswitch turns it on and off."),
       ("LEVEL", "Audio taper: 0 = muted, noon about −15 dB, 3 o'clock about −7 dB, full = 0 dB. The three modes are levelled like on the pedal: SDT-2 slightly quieter, Laerm louder."),
-      ("TREBLE · MIDS · BASS", "Active 3-band EQ after the distortion: bass shelf at 90 Hz with a punch bump around 120 Hz (±15 dB, after the clipping: more body without more compression), mid bell at <b>1 kHz</b> (±12 dB) for surgical presence shaping, treble shelf at 3 kHz (±15 dB). At noon each band is flat. The circuit itself has a stoner mid / high-mid voice (Orange / Sunn style): a push around 900 Hz and 2.3 kHz so the sound cuts through, on top of a full low end with presence (bass bump around 100 Hz and body around 220 / 320 Hz, all added after the clipping so they stay tight)."),
+      ("TREBLE · MIDS · BASS", "Active 3-band EQ after the distortion: bass shelf at 90 Hz with a punch bump around 120 Hz (±15 dB, after the clipping: more body without more compression), mid bell at <b>1 kHz</b> (±12 dB) for surgical presence shaping, treble shelf at 3 kHz (-15 / +21 dB, with extra sparkle around 4.5 kHz when turned up). At noon each band is flat. The circuit itself has a stoner mid / high-mid voice (Orange / Sunn style): a push around 900 Hz and 2.3 kHz so the sound cuts through, on top of a full low end with presence (bass bump around 100 Hz and body around 220 / 320 Hz, all added after the clipping so they stay tight)."),
       ("EQ off / on", "With the switch up (off), the EQ is completely lifted out of the signal path, as on the Thorn: the three EQ knobs then have no effect and the raw voice of the circuit goes straight to the amp (Lennart's setting into an Ampeg V4). The change is crossfaded, without any click."),
       ("Modes", "<b>SDT-1</b> (down): the original Stampede, silicon diodes to ground, singing mids. <b>Laerm</b> (centre): Lichtlaerm's own voicing, higher clipping threshold (LED-like), wider bandwidth, more open, more direct and louder (about +4 dB). <b>SDT-2</b> (up): an extra compression stage, more saturated and darker, slightly quieter (about −3 dB), the tones of Living Gate. Changing mode crossfades in a few milliseconds.")],
  modes_cap="The mode switch on SDT-2 (lever up), Laerm (centre) and SDT-1 (lever down).",
@@ -224,7 +224,7 @@ T = {
  tech_t="9. Specifications and version history",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Channels", "Mono or stereo"],
        ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 26 to 72 dB, + 0 to 20 dB boost"],
-       ["EQ", "bass 90 Hz + 120 Hz punch ±15 dB, mids 1 kHz ±12 dB, treble 3 kHz ±15 dB, bypassable"],
+       ["EQ", "bass 90 Hz + 120 Hz punch ±15 dB, mids 1 kHz ±12 dB, treble 3 kHz -15 / +21 dB, bypassable"],
        ["Processing", "4x oversampling, smoothed parameters, no denormals"], ["CPU", "about 4 % of one core at 48 kHz (stereo)"]],
  hist=[["1.0.0", "First version: Thorn / Stampede SDT-1 model with SDT-1, SDT-2 and Laerm voicings, additive boost, bypassable 3-band EQ, smart relay footswitches, MIDI and expression pedals, 10 factory presets and 9 user presets, Echoflex single pedal format"],
        ["1.0.1 - 1.4.0", "Status line limited to the control you move, anti-freeze, tighter sound, bigger pedal, red-only LED with lit BOOST knob, sound matched on a recording of the real Thorn, readable status font"],
@@ -232,7 +232,8 @@ T = {
        ["2.0.0", "Stoner grain and fat: a parallel Big Muff-style fuzz layer (two cascaded, slightly asymmetric clipping stages, band-limited so the lows stay tight and the top never fizzes) blended under the distortion, and a wide body bump around 220 Hz after the clipping"],
        ["2.1.0", "No longer muffled: stoner mid / high-mid voice (Orange / Sunn style): the mid scoop is replaced by a push around 900 Hz and 2.3 kHz, more open fuzz layer, top +3.5 dB, lighter low-mids"],
        ["2.2.0", "Low end and low-mids back with presence (bass +3 dB around 100 Hz, body around 220 and 320 Hz raised, mid dip removed) while keeping the mid / high-mid push; output level lowered to keep headroom so nothing gets squashed"],
-       ["2.3.0", "More fuzz, a little less distortion: the Big Muff-style fuzz layer is pushed harder and now leads the mix (fuzz about 62 %, diode distortion lowered to 60 %); same level, same tight low end"]],
+       ["2.3.0", "More fuzz, a little less distortion: the Big Muff-style fuzz layer is pushed harder and now leads the mix (fuzz about 62 %, diode distortion lowered to 60 %); same level, same tight low end"],
+       ["2.4.0", "TREBLE goes much higher: up to +21 dB (instead of +15) with extra sparkle around 4.5 kHz; the cut side is unchanged"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -249,7 +250,7 @@ T = {
    ["1", "GAIN", "Quantité de distorsion. Glisser vers le haut / le bas, molette, double-clic = midi."],
    ["2", "BOOST (petit potard)", "Niveau du boost, de 0 à +20 dB. Ne s'entend que si le footswitch BOOST est enclenché : le potard transparent s'éclaire alors de l'intérieur et son curseur apparaît nettement."],
    ["3", "LEVEL", "Volume de sortie."],
-   ["4", "TREBLE", "Plateau d'aigus, ±15 dB, plat à midi."],
+   ["4", "TREBLE", "Plateau d'aigus à 3 kHz : coupe jusqu'à -15 dB, montée jusqu'à +21 dB avec de la brillance en plus vers 4,5 kHz ; plat à midi."],
    ["5", "MIDS", "Cloche de médiums à 1 kHz, ±12 dB, plate à midi."],
    ["6", "BASS", "Graves avec du punch : plateau à 90 Hz plus une bosse de présence vers 120 Hz, ±15 dB, plat à midi ; après la distorsion, il n'ajoute jamais de compression."],
    ["7", "Inverseur EQ", "En haut = off (EQ retiré du circuit), en bas = on."],
@@ -265,7 +266,7 @@ T = {
  ctl=[("GAIN", "D'environ 26 dB à 72 dB de gain, répartis sur deux étages d'ampli op. Le gain arrive tôt : le potard donne déjà un crunch dur et mordant en début de course, et le mur façon fuzz qui a fait la réputation de la Stampede est là dès 9 h environ ; plus haut, le grain s'épaissit et le sustain s'allonge. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit. Le grave est filtré fortement avant l'écrêtage et suit votre jeu après : plein à l'attaque, il redescend quand la note s'éteint, les palm mutes restent nets. L'essentiel du grave est tenu à l'écart de l'écrêtage et rendu après : les bas-médiums restent nets même gain à fond ; une bosse large de bas-médiums vers 320 Hz, ajoutée après l'écrêtage, donne du corps aux accords. Une couche fuzz en parallèle (deux écrêtages en cascade légèrement asymétriques, comme une Big Muff) est mélangée à la distorsion, et passe maintenant devant, pour le grain fuzz épais et laineux des guitares stoner, et une bosse large vers 220 Hz après l'écrêtage donne le gras du son. La sortie suit aussi la dynamique de votre jeu (l'écrêtage seul l'aplatirait) : les attaques ressortent et les notes retombent naturellement, le son n'est jamais écrasé."),
       ("BOOST", "Comme sur la Thorn, le boost est <b>additif</b> : ce n'est pas une pédale séparée placée devant, il ajoute son gain (0 à +20 dB, réglé avec le petit potard, plus jusqu'à +4 dB de niveau et une poussée vers 1,6 kHz pour bien l'entendre arriver) au GAIN et remonte un peu le passe-haut d'entrée : l'attaque se resserre et le sustain s'allonge. Le petit potard règle la quantité ; le footswitch BOOST l'enclenche et le coupe."),
       ("LEVEL", "Courbe audio : 0 = coupé, midi environ −15 dB, 15 h environ −7 dB, à fond = 0 dB. Les trois modes sont équilibrés comme sur la pédale : SDT-2 un peu moins fort, Laerm plus fort."),
-      ("TREBLE · MIDS · BASS", "EQ actif 3 bandes après la distorsion : plateau de graves à 90 Hz avec une bosse de punch vers 120 Hz (±15 dB, après l'écrêtage : plus de corps sans plus de compression), cloche de médiums à <b>1 kHz</b> (±12 dB) pour sculpter précisément la présence, plateau d'aigus à 3 kHz (±15 dB). À midi, chaque bande est plate. Le circuit lui-même a une voix stoner médium / médium-aigu (façon Orange / Sunn) : une poussée vers 900 Hz et 2,3 kHz pour que le son perce, sur un bas plein et présent (bosse de grave vers 100 Hz et corps vers 220 / 320 Hz, tous ajoutés après l'écrêtage pour rester serrés)."),
+      ("TREBLE · MIDS · BASS", "EQ actif 3 bandes après la distorsion : plateau de graves à 90 Hz avec une bosse de punch vers 120 Hz (±15 dB, après l'écrêtage : plus de corps sans plus de compression), cloche de médiums à <b>1 kHz</b> (±12 dB) pour sculpter précisément la présence, plateau d'aigus à 3 kHz (-15 / +21 dB, avec de la brillance en plus vers 4,5 kHz quand on le monte). À midi, chaque bande est plate. Le circuit lui-même a une voix stoner médium / médium-aigu (façon Orange / Sunn) : une poussée vers 900 Hz et 2,3 kHz pour que le son perce, sur un bas plein et présent (bosse de grave vers 100 Hz et corps vers 220 / 320 Hz, tous ajoutés après l'écrêtage pour rester serrés)."),
       ("EQ off / on", "Inverseur en haut (off) : l'EQ est entièrement retiré du trajet du signal, comme sur la Thorn ; les trois potards d'EQ n'ont alors plus d'effet et la voix brute du circuit part directement dans l'ampli (le réglage de Lennart dans un Ampeg V4). Le changement se fait en fondu, sans aucun clic."),
       ("Modes", "<b>SDT-1</b> (en bas) : la Stampede d'origine, diodes silicium à la masse, médiums qui chantent. <b>Laerm</b> (au centre) : la voix propre à Lichtlaerm, seuil d'écrêtage plus haut (type LED), bande passante plus large, plus ouverte, plus directe et plus forte (environ +4 dB). <b>SDT-2</b> (en haut) : un étage de compression en plus, plus saturée et plus sombre, un peu moins forte (environ −3 dB), les sons de Living Gate. Le changement de mode se fait en fondu en quelques millisecondes.")],
  modes_cap="L'inverseur de mode sur SDT-2 (levier en haut), Laerm (au centre) et SDT-1 (levier en bas).",
@@ -296,7 +297,7 @@ T = {
  tech_t="9. Caractéristiques techniques et historique des versions",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Canaux", "Mono ou stéréo"],
        ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 26 à 72 dB, + 0 à 20 dB de boost"],
-       ["EQ", "graves 90 Hz + punch 120 Hz ±15 dB, médiums 1 kHz ±12 dB, aigus 3 kHz ±15 dB, bypassable"],
+       ["EQ", "graves 90 Hz + punch 120 Hz ±15 dB, médiums 1 kHz ±12 dB, aigus 3 kHz -15 / +21 dB, bypassable"],
        ["Traitement", "sur-échantillonnage x4, paramètres lissés, pas de dénormaux"], ["Processeur", "environ 4 % d'un cœur à 48 kHz (stéréo)"]],
  hist=[["1.0.0", "Première version : modèle Thorn / Stampede SDT-1 avec les voix SDT-1, SDT-2 et Laerm, boost additif, EQ 3 bandes bypassable, footswitchs smart relay, MIDI et pédales d'expression, 10 presets usine et 9 presets utilisateur, format pédale simple d'Echoflex"],
        ["1.0.1 - 1.4.0", "Ligne d'état limitée à la commande que l'on bouge, anti-gel, son plus serré, pédale agrandie, LED rouge seule et potard BOOST éclairé, son calé sur un enregistrement de la vraie Thorn, police de ligne d'état lisible"],
@@ -304,7 +305,8 @@ T = {
        ["2.0.0", "Grain et gras stoner : couche fuzz en parallèle façon Big Muff (deux écrêtages en cascade légèrement asymétriques, limités en bande pour que le grave reste serré et que les aigus ne grésillent jamais) mélangée sous la distorsion, et bosse de corps large vers 220 Hz après l'écrêtage"],
        ["2.1.0", "Fini le son sourd : voix stoner médium / médium-aigu (façon Orange / Sunn) : le creux des médiums est remplacé par une poussée vers 900 Hz et 2,3 kHz, couche fuzz plus ouverte, aigus +3,5 dB, bas-médiums allégés"],
        ["2.2.0", "Grave et bas-médiums de retour avec de la présence (grave +3 dB vers 100 Hz, corps vers 220 et 320 Hz remonté, creux des médiums supprimé) en gardant la poussée médium / médium-aigu ; niveau de sortie baissé pour garder de la marge et ne rien écraser"],
-       ["2.3.0", "Plus de fuzz, un peu moins de distorsion : la couche fuzz façon Big Muff est poussée plus fort et passe devant (fuzz environ 62 %, distorsion à diodes baissée à 60 %) ; même niveau, même grave serré"]],
+       ["2.3.0", "Plus de fuzz, un peu moins de distorsion : la couche fuzz façon Big Muff est poussée plus fort et passe devant (fuzz environ 62 %, distorsion à diodes baissée à 60 %) ; même niveau, même grave serré"],
+       ["2.4.0", "TREBLE monte beaucoup plus : jusqu'à +21 dB (au lieu de +15) avec de la brillance en plus vers 4,5 kHz ; la coupe ne change pas"]],
  ver_h=["Version", "Changements"]),
 }
 
