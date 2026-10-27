@@ -29,6 +29,7 @@
 #include <cstring>
 
 // v2.4 : TREBLE peut monter beaucoup plus (+21 dB et brillance 4,5 kHz).
+// v2.9 : un peu moins de fuzz : fuzz ~40 % / distorsion ~60 % dans le son (avant ~50 / 50), meme niveau.
 // v2.8 : fin du sifflement apres l'attaque (souffle et intermodulation des partiels aigus amplifies par l'ecretage,
 //        mis en avant par la v2.7) : aigus limites avant l'ecretage (2 poles 5 / 7 kHz, plus d'accent 3,4 kHz),
 //        definition deplacee a 3,2 kHz (cloche large), poussee 2,3 kHz allegee (zone ou les harmoniques de l'ecretage restent nettes), plus d'« air » 6,2 kHz,
@@ -123,10 +124,10 @@
  #define DOORN_LOWMID_HZ 320.0
 #endif
 #ifndef DOORN_FUZZ_MIX
- #define DOORN_FUZZ_MIX 0.62f
+ #define DOORN_FUZZ_MIX 0.56f
 #endif
 #ifndef DOORN_DIST_KEEP
- #define DOORN_DIST_KEEP 0.60f
+ #define DOORN_DIST_KEEP 0.655f
 #endif
 #ifndef DOORN_FAT_DB
  #define DOORN_FAT_DB 4.0
