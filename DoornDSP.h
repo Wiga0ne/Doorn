@@ -29,6 +29,9 @@
 #include <cstring>
 
 // v2.4 : TREBLE peut monter beaucoup plus (+21 dB et brillance 4,5 kHz).
+// v2.7 : clarte / definition : filtres passe-bas du circuit ouverts (avant ecretage, fuzz, ampli op, sortie),
+//        harmoniques aigues avant l'ecretage (3,4 kHz), definition 4 kHz, air 6,2 kHz, anti-grésillement 11 kHz,
+//        poussee 900 Hz / 2,3 kHz allegee (son moins « nasal »).
 // v2.6 : noise gate integre (Off / Light / Medium / Strong) : plus de souffle ni de ronflement quand on ne joue pas.
 // v2.5 : BASS jusqu'a +18 dB, courses BASS / TREBLE progressives et continues (pas de cassure a midi).
 // v2.3 : plus fuzz, moins distorsion (fuzz 62 %, diodes 60 %, fuzz plus poussee).
@@ -43,6 +46,36 @@
 // puis rendu APRES (pas d'intermodulation qui bave), mordant a 1,8 kHz avant l'ecretage pour un son tranche.
 // v1.6 : son metal / stoner de la Thorn : mordant du boost dans la voix de base, grave epais mais ferme,
 // haut chaud, grain un peu fuzz ; dynamique de jeu rendue (anti-compression)
+#ifndef DOORN_MIDPUSH_DB
+ #define DOORN_MIDPUSH_DB 3.0
+#endif
+#ifndef DOORN_HIMID_DB
+ #define DOORN_HIMID_DB 3.0
+#endif
+#ifndef DOORN_FIZZ_HZ
+ #define DOORN_FIZZ_HZ 11000.0
+#endif
+#ifndef DOORN_PRELP
+ #define DOORN_PRELP 12000.0
+#endif
+#ifndef DOORN_FZLP
+ #define DOORN_FZLP 11000.0
+#endif
+#ifndef DOORN_ST1
+ #define DOORN_ST1 19000.0f
+#endif
+#ifndef DOORN_CLAR_DB
+ #define DOORN_CLAR_DB 4.5
+#endif
+#ifndef DOORN_CLAR_HZ
+ #define DOORN_CLAR_HZ 4000.0
+#endif
+#ifndef DOORN_AIR_DB
+ #define DOORN_AIR_DB 4.0
+#endif
+#ifndef DOORN_EDGE_DB
+ #define DOORN_EDGE_DB 4.0
+#endif
 #ifndef DOORN_SCOOP_HZ
  #define DOORN_SCOOP_HZ 420.0
 #endif
@@ -59,7 +92,7 @@
  #define DOORN_HIGH_DB 3.5
 #endif
 #ifndef DOORN_LP_SCALE
- #define DOORN_LP_SCALE 1.0
+ #define DOORN_LP_SCALE 1.6
 #endif
 #ifndef DOORN_HP_MUL
  #define DOORN_HP_MUL 1.8f
@@ -272,7 +305,7 @@ namespace doorn
     struct Params
     {
         float gain = 7.5f, boost = 7.5f, level = 7.5f;     // 0..10
-        float treble = 10.0f, mids = 3.75f, bass = 7.5f;   // 0..10 (5 = plat)
+        float treble = 8.0f, mids = 3.75f, bass = 7.5f;   // 0..10 (5 = plat)
         bool  eq = true, boostOn = false, active = true;
         int   mode = modeSDT1;
         int   gate = 2;      // v2.6 noise gate integre : 0 = off, 1 = leger, 2 = moyen, 3 = fort
@@ -322,13 +355,13 @@ namespace doorn
             dcOut.setLP (sr, 12.0);
             inter.setLP (srO, DOORN_INTER_HZ);
             fzHP.setLP (srO, 140.0);
-            fzLP.setLP (srO, 6500.0);
+            fzLP.setLP (srO, DOORN_FZLP);
             reset();
         }
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &eqTrebAir, &boostPres })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &eqTrebAir, &boostPres, &preEdge, &outClar, &outAir, &outFizz })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); fzHP.reset(); fzLP.reset(); bassLP.reset(); env = ref = 0.0f;
         }
@@ -342,7 +375,11 @@ namespace doorn
             outLowMid.peak (sr, DOORN_LOWMID_HZ, 0.9, DOORN_LOWMID_DB);
             outFat.peak (sr, DOORN_FAT_HZ, 0.7, DOORN_FAT_DB);      // v2.0 « gras » stoner : corps des accords apres l'ecretage   // v1.8 : bas-mediums rendus APRES l'ecretage (corps sans bave)
             prePeak.peak (sr, v.prePeakHz, v.prePeakQ, v.prePeakDb);
-            preLP.lowpass (sr, 7200.0, 0.65);
+            preLP.lowpass (sr, DOORN_PRELP, 0.65);
+            preEdge.peak (sr, 3400.0, 0.9, DOORN_EDGE_DB);          // v2.7 definition : harmoniques aigues avant l'ecretage
+            outClar.peak (sr, DOORN_CLAR_HZ, 0.8, DOORN_CLAR_DB);   // v2.7 clarte / definition
+            outAir.peak (sr, 6200.0, 0.9, DOORN_AIR_DB);            // v2.7 air (cloche : pas de grésillement au-dessus)
+            outFizz.lowpass (sr, DOORN_FIZZ_HZ, 0.6);               // v2.7 anti-grésillement au-dessus de ~11 kHz
             st1lp.setLP (srO, st1Fc);
             post1.lowpass (srO, v.postLP * DOORN_LP_SCALE, 0.62);
             post2.lowpass (srO, v.postLP * DOORN_LP_SCALE * 1.6, 0.55);
@@ -352,8 +389,8 @@ namespace doorn
             outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
             outPres.peak (sr, 2900.0, 0.9, v.presenceDb);
             // v2.1 voix stoner « medium / medium-aigu » (facon Orange / Sunn) : mediums en avant au lieu d'etre creuses
-            outMidPush.peak (sr, 900.0, 0.8, 4.0);
-            outHiMid.peak (sr, 2300.0, 0.9, 5.5);
+            outMidPush.peak (sr, 900.0, 0.8, DOORN_MIDPUSH_DB);
+            outHiMid.peak (sr, 2300.0, 0.9, DOORN_HIMID_DB);
             boostPres.peak (sr, 1600.0, 0.7, 4.5 * boostMix);   // v1.9 boost : mediums-aigus en avant (le son passe devant)
             preBite.peak (sr, 1800.0, 0.8, DOORN_BITE_DB);     // attaque / mordant avant l'ecretage
             // v1.9 : BASS = plateau 90 Hz + bosse de presence / punch vers 120 Hz (attaque du grave), apres l'ecretage :
@@ -383,7 +420,7 @@ namespace doorn
             ref = std::max (env, ref + (env - ref) * refR);
             x = hp2.process (hp.process (x));
             x = preBite.process (prePeak.process (preMud.process (x)));
-            x = preLP.process (x);
+            x = preEdge.process (preLP.process (x));
 
             float up[Oversampler4::factor];
             os.up (x, up);
@@ -430,7 +467,7 @@ namespace doorn
                 // comme un ampli qui « respire » ; jusqu'a -9 dB quand la note s'eteint
                 y *= clampf (std::pow (rel + 1.0e-4f, 0.33f), 0.35f, 1.0f);
             }
-            y = outHiMid.process (outMidPush.process (outPres.process (outHigh.process (outScoop.process (outFat.process (outLowMid.process (outLow.process (outSub.process (y)))))))));
+            y = outFizz.process (outAir.process (outClar.process (outHiMid.process (outMidPush.process (outPres.process (outHigh.process (outScoop.process (outFat.process (outLowMid.process (outLow.process (outSub.process (y))))))))))));
             const float e = eqTrebAir.process (eqTreb.process (eqMid.process (eqBassPunch.process (eqBass.process (y)))));
             return y + (e - y) * eqMix;
         }
@@ -438,7 +475,7 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, eqTrebAir, boostPres;
+        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, eqTrebAir, boostPres, preEdge, outClar, outAir, outFizz;
         OnePole dcIn, dcOut, inter, st1lp, fzHP, fzLP;
         Biquad bassLP;
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
@@ -576,7 +613,7 @@ namespace doorn
         bool  gateOpen = true; int gateHold = 0, gateHoldLen = 2880;
         Biquad gateDetHP;
     public:
-        float outTrim = -5.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = -6.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
@@ -587,7 +624,7 @@ namespace doorn
             const float hpHz = v.hpHz * DOORN_HP_MUL + 70.0f * bon * (0.35f + 0.65f * bo);     // le boost resserre le grave
             // filtre de l'ampli op : la bande passante baisse quand le gain monte
             const float gTot = gainDb (sGain.s2) + boostDb (sBoost.s2) * bon;
-            const float st1Fc = 14000.0f - 70.0f * clampf (gTot, 0.0f, 60.0f);
+            const float st1Fc = DOORN_ST1 - 70.0f * clampf (gTot, 0.0f, 60.0f);
             for (int c = 0; c < nCh; ++c)
                 ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 1.0f), eqDb (sMid.s2, 12.0f), eqDb (sTreb.s2, 1.0f), bon * (0.4f + 0.6f * bo));
         }

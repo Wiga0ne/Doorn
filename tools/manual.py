@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "2.6.0"
+VERSION = "2.7.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -126,14 +126,14 @@ def table(rows, widths, header=True, small=False):
 # ---------- donnees (identiques au code livre : PluginProcessor.cpp) ----------
 MODES = ["SDT-2", "Laerm", "SDT-1"]
 FACTORY = [  # nom, gain, boost, level, treble, mids, bass, eq, mode, boostOn
-    ("Signature Start",        7.5, 7.5, 7.5, 10, 3.75, 7.5, 1, 2, 0),
-    ("Wall of Thorns",         8.5, 6.0, 7.0, 8.0, 3.5, 7.0, 1, 2, 0),
+    ("Signature Start",        7.5, 7.5, 7.5, 8.0, 3.75, 7.5, 1, 2, 0),
+    ("Wall of Thorns",         8.5, 6.0, 7.0, 7.0, 3.5, 7.0, 1, 2, 0),
     ("V4 EQ Bypass",           7.5, 5.0, 7.0, 5.0, 5.0, 5.0, 0, 2, 0),
     ("Living Gate Saturation", 8.0, 5.0, 8.0, 7.0, 6.0, 6.0, 1, 0, 0),
     ("Laerm Open",             6.5, 5.0, 6.0, 7.0, 5.5, 6.0, 1, 1, 0),
     ("Laerm Lead Boost",       7.0, 8.0, 6.0, 6.5, 7.0, 5.0, 1, 1, 1),
     ("Stampede Crunch",        3.0, 5.0, 7.5, 6.0, 6.0, 5.0, 1, 2, 0),
-    ("Hardcore Bite",          9.5, 4.0, 6.5, 8.5, 6.5, 4.5, 1, 2, 0),
+    ("Hardcore Bite",          9.5, 4.0, 6.5, 7.5, 6.5, 4.5, 1, 2, 0),
     ("Sludge Sustain",         10,  5.0, 7.0, 5.0, 2.5, 9.0, 1, 0, 1),
     ("Thorn Reference",        4.3, 0.0, 5.8, 5.8, 5.0, 8.0, 1, 2, 0)]
 FACT_DESC = {
@@ -233,7 +233,8 @@ T = {
        ["2.0.0 - 2.3.0", "Stoner grain and fat: parallel Big Muff-style fuzz layer that now leads the distortion (fuzz about 62 %), body bump around 220 Hz, stoner mid / high-mid voice (push around 900 Hz and 2.3 kHz, no longer muffled), low end and low-mids back with presence, headroom kept so nothing gets squashed"],
        ["2.4.0", "TREBLE goes much higher: up to +21 dB (instead of +15) with extra sparkle around 4.5 kHz; the cut side is unchanged"],
        ["2.5.0", "BASS goes higher too (up to +18 dB); BASS and TREBLE travel is smooth and natural, no sudden change at noon; stronger anti-freeze for the window (no heavy work while drawing, watchdog, no host call from the audio thread), JUCE 8.0.15"],
-       ["2.6.0", "Built-in noise gate (right-click &gt; Noise gate: Off / Light / Medium / Strong, Medium by default): no more hiss or hum when you stop playing, attacks never cut, notes fade naturally"]],
+       ["2.6.0", "Built-in noise gate (right-click &gt; Noise gate: Off / Light / Medium / Strong, Medium by default): no more hiss or hum when you stop playing, attacks never cut, notes fade naturally"],
+       ["2.7.0", "Clearer, more defined sound on every preset: the circuit's low-pass filters are opened up, more high harmonics before the clipping, definition around 4 kHz and air around 6 kHz, anti-fizz above 11 kHz, lighter nasal mid push; lows and mids kept. Presets with TREBLE at max lowered (Signature Start, Wall of Thorns, Hardcore Bite)"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -306,7 +307,8 @@ T = {
        ["2.0.0 - 2.3.0", "Grain et gras stoner : couche fuzz en parallèle façon Big Muff qui passe devant la distorsion (fuzz environ 62 %), bosse de corps vers 220 Hz, voix stoner médium / médium-aigu (poussée vers 900 Hz et 2,3 kHz, fini le son sourd), grave et bas-médiums de retour avec de la présence, marge gardée pour ne rien écraser"],
        ["2.4.0", "TREBLE monte beaucoup plus : jusqu'à +21 dB (au lieu de +15) avec de la brillance en plus vers 4,5 kHz ; la coupe ne change pas"],
        ["2.5.0", "BASS monte plus aussi (jusqu'à +18 dB) ; courses de BASS et TREBLE douces et naturelles, plus de changement brusque à midi ; anti-gel renforcé pour la fenêtre (aucun calcul lourd au dessin, chien de garde, aucun appel à l'hôte depuis le thread audio), JUCE 8.0.15"],
-       ["2.6.0", "Noise gate intégré (clic droit &gt; Noise gate : Off / Light / Medium / Strong, Medium par défaut) : plus de souffle ni de ronflement quand on arrête de jouer, attaques jamais coupées, notes qui s'éteignent naturellement"]],
+       ["2.6.0", "Noise gate intégré (clic droit &gt; Noise gate : Off / Light / Medium / Strong, Medium par défaut) : plus de souffle ni de ronflement quand on arrête de jouer, attaques jamais coupées, notes qui s'éteignent naturellement"],
+       ["2.7.0", "Son plus clair et plus défini sur tous les presets : filtres passe-bas du circuit ouverts, plus d'harmoniques aiguës avant l'écrêtage, définition vers 4 kHz et air vers 6 kHz, anti-grésillement au-dessus de 11 kHz, poussée nasale des médiums allégée ; graves et médiums conservés. Presets avec TREBLE au maximum baissés (Signature Start, Wall of Thorns, Hardcore Bite)"]],
  ver_h=["Version", "Changements"]),
 }
 

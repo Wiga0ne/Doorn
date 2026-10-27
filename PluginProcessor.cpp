@@ -9,14 +9,14 @@ using namespace juce;
 static const DoornPreset factoryPresets[] =
 {
     //  nom                    gain boost level treb  mids  bass  eq mode boostOn
-    { "Signature Start",       7.5f, 7.5f, 7.5f, 10.f, 3.75f, 7.5f, 1, 2, 0 },   // reglage de depart du test Guitar Pedal X
-    { "Wall of Thorns",        8.5f, 6.0f, 7.0f, 8.0f, 3.5f,  7.0f, 1, 2, 0 },
+    { "Signature Start",       7.5f, 7.5f, 7.5f, 8.0f, 3.75f, 7.5f, 1, 2, 0 },   // reglage de depart du test Guitar Pedal X
+    { "Wall of Thorns",        8.5f, 6.0f, 7.0f, 7.0f, 3.5f,  7.0f, 1, 2, 0 },
     { "V4 EQ Bypass",          7.5f, 5.0f, 7.0f, 5.0f, 5.0f,  5.0f, 0, 2, 0 },   // EQ retire, comme Lennart dans un Ampeg V4
     { "Living Gate Saturation",8.0f, 5.0f, 8.0f, 7.0f, 6.0f,  6.0f, 1, 0, 0 },
     { "Laerm Open",            6.5f, 5.0f, 6.0f, 7.0f, 5.5f,  6.0f, 1, 1, 0 },
     { "Laerm Lead Boost",      7.0f, 8.0f, 6.0f, 6.5f, 7.0f,  5.0f, 1, 1, 1 },
     { "Stampede Crunch",       3.0f, 5.0f, 7.5f, 6.0f, 6.0f,  5.0f, 1, 2, 0 },
-    { "Hardcore Bite",         9.5f, 4.0f, 6.5f, 8.5f, 6.5f,  4.5f, 1, 2, 0 },
+    { "Hardcore Bite",         9.5f, 4.0f, 6.5f, 7.5f, 6.5f,  4.5f, 1, 2, 0 },
     { "Sludge Sustain",        10.f, 5.0f, 7.0f, 5.0f, 2.5f,  9.0f, 1, 0, 1 },
     { "Thorn Reference",       4.3f, 0.0f, 5.8f, 5.8f, 5.0f,  8.0f, 1, 2, 0 },   // reglages de la vraie pedale (photo + enregistrement)
 };
