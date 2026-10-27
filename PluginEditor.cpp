@@ -18,8 +18,8 @@ namespace
     const Point<float> boostPos = layout::boostPos, bypassPos = layout::bypassPos;
     const float footR = 60.0f * layout::sc;
     // ligne d'etat et barre de presets : entre les inscriptions des inverseurs et la LED
-    const Rectangle<float> statusRect { 270.0f, 604.0f, 220.0f, 32.0f };
-    const Rectangle<float> presetRect { 235.0f, 648.0f, 290.0f, 25.0f };
+    const Rectangle<float> statusRect { 240.0f, 599.0f, 280.0f, 41.0f };
+    const Rectangle<float> presetRect { 222.0f, 646.0f, 316.0f, 29.0f };
 
     const float rotStart = MathConstants<float>::pi * (7.0f / 6.0f);    // -150 degres
     const float rotEnd   = MathConstants<float>::pi * (17.0f / 6.0f);   // +150 degres
@@ -236,7 +236,8 @@ DoornAudioProcessorEditor::DoornAudioProcessorEditor (DoornAudioProcessor& p)
     background = ImageCache::getFromMemory (BinaryData::background_jpg, BinaryData::background_jpgSize);
     glowRed    = ImageCache::getFromMemory (BinaryData::glow_red_png,   BinaryData::glow_red_pngSize);
     const auto strip = ImageCache::getFromMemory (BinaryData::toggle_strip_png, BinaryData::toggle_strip_pngSize);
-    labelFace = Typeface::createSystemTypefaceFor (BinaryData::FondamentoRegular_ttf, BinaryData::FondamentoRegular_ttfSize);
+    // police lisible et standard (sans empattement) pour la ligne d'etat et la barre de presets
+    labelFace = Typeface::createSystemTypefaceFor (BinaryData::PoppinsMedium_ttf, BinaryData::PoppinsMedium_ttfSize);
 
     rightClickFwd.callback = [this] { showContextMenu(); };
 
@@ -529,7 +530,7 @@ void DoornAudioProcessorEditor::drawStatus (Graphics& g)
     g.setColour (Colour (0xffb79f6e).withAlpha (0.45f * a));       // filet couleur des fissures dorees
     g.drawRoundedRectangle (statusRect.reduced (0.75f), 9.0f, 1.3f);
 
-    const Font f (FontOptions (labelFace).withHeight (21.0f));
+    const Font f (FontOptions (labelFace).withHeight (27.0f));
     g.setFont (f);
     g.setColour (inkWhite.withAlpha (a));
     g.drawFittedText (lastLine1, statusRect.toNearestInt(), Justification::centred, 1, 0.8f);
@@ -557,7 +558,7 @@ void DoornAudioProcessorEditor::drawPresetBar (Graphics& g)
     arrow (r.withWidth (aw), true, hoverZone == 1);
     arrow (r.withTrimmedLeft (r.getWidth() - aw), false, hoverZone == 3);
 
-    g.setFont (Font (FontOptions (labelFace).withHeight (15.5f)));
+    g.setFont (Font (FontOptions (labelFace).withHeight (17.5f)));
     g.setColour ((midiFlash > 0 ? Colour (0xffffc070) : inkWhite).withAlpha (hoverZone == 2 ? 1.0f : 0.88f));
     g.drawFittedText (lastPreset, r.reduced (aw, 0.0f).toNearestInt(), Justification::centred, 1, 0.7f);
 }

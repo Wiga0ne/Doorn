@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -210,7 +210,7 @@ T = {
        ["Program Change 1-10", "Factory presets"]],
  win_t="6. Window",
  win=["Doorn uses the single pedal format of Echoflex: the window opens at its default size, <b>391 x 493 pixels</b>, and can never be made smaller than that. Drag the bottom-right corner to enlarge it up to 150 % (proportions are kept), or right-click &gt; <b>Window size</b>: Default, 75 %, 100 %.",
-      "The <b>status line</b> shows only the setting of the knob, switch or footswitch you just moved (knobs in %, e.g. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), in the lettering of the pedal; it appears when a setting moves and fades out after 2.5 s. The <b>preset bar</b> under it always shows the current preset, mode and boost / bypass state."],
+      "The <b>status line</b> shows only the setting of the knob, switch or footswitch you just moved (knobs in %, e.g. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), in large, clear lettering; it appears when a setting moves and fades out after 2.5 s. The <b>preset bar</b> under it always shows the current preset, mode and boost / bypass state."],
  bar_cap="Status line (the control you just moved) and preset bar.",
  pre_t="7. Presets",
  pre=["Use the arrows of the preset bar, click its name, right-click anywhere, or use the preset menu of your DAW. Right-click &gt; <b>Save user preset</b> stores up to 9 presets of your own."],
@@ -229,7 +229,8 @@ T = {
        ["1.0.1", "Status line shows only the control you move; window anti-freeze completed (no redraw at rest: steady LED without flicker, no forced resize from the window)"],
        ["1.1.0", "Tighter, more precise sound: higher input high-pass, low-mid cut before clipping, harder diode knee, cleaner first stage, less bias, SDT-2 less crushed, gain range 6 to 54 dB; bigger pedal in the same window; LED light on the panel without any visible square"],
        ["1.2.0", "More gain, like the original Thorn (10 to 66 dB, the precision of 1.1 is kept by the filters); the LED no longer turns amber with the boost: the transparent BOOST knob lights up from inside instead and its cursor becomes visible"],
-       ["1.3.0", "Sound matched on a recording of a real Thorn (settings of factory preset 10): much more gain from the start of the GAIN travel, the scooped mids of the pedal (about -16 dB around 750 Hz with the EQ at noon), fuller low end, softer top; preset 10 Thorn Reference"]],
+       ["1.3.0", "Sound matched on a recording of a real Thorn (settings of factory preset 10): much more gain from the start of the GAIN travel, the scooped mids of the pedal (about -16 dB around 750 Hz with the EQ at noon), fuller low end, softer top; preset 10 Thorn Reference"],
+       ["1.3.1", "Status line and preset bar in a larger, standard sans-serif font (Poppins) for readability"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -280,7 +281,7 @@ T = {
        ["Program Change 1-10", "Presets usine"]],
  win_t="6. Fenêtre",
  win=["Doorn utilise le format pédale simple d'Echoflex : la fenêtre s'ouvre à sa taille par défaut, <b>391 x 493 pixels</b>, et ne peut jamais être réduite en dessous. Tirez le coin en bas à droite pour l'agrandir jusqu'à 150 % (les proportions sont conservées), ou clic droit &gt; <b>Window size</b> : Default, 75 %, 100 %.",
-      "La <b>ligne d'état</b> affiche seulement le réglage du potard, de l'inverseur ou du footswitch que vous venez de bouger (potards en %, par ex. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), dans le lettrage de la pédale ; elle apparaît quand un réglage bouge et s'efface au bout de 2,5 s. La <b>barre de presets</b> en dessous affiche en permanence le preset, le mode et l'état boost / bypass."],
+      "La <b>ligne d'état</b> affiche seulement le réglage du potard, de l'inverseur ou du footswitch que vous venez de bouger (potards en %, par ex. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), en grands caractères bien lisibles ; elle apparaît quand un réglage bouge et s'efface au bout de 2,5 s. La <b>barre de presets</b> en dessous affiche en permanence le preset, le mode et l'état boost / bypass."],
  bar_cap="Ligne d'état (la commande que vous venez de bouger) et barre de presets.",
  pre_t="7. Presets",
  pre=["Utilisez les flèches de la barre de presets, cliquez sur son nom, faites un clic droit n'importe où, ou passez par le menu de presets de votre DAW. Clic droit &gt; <b>Save user preset</b> enregistre jusqu'à 9 presets personnels."],
@@ -299,7 +300,8 @@ T = {
        ["1.0.1", "La ligne d'état n'affiche que la commande que l'on bouge ; anti-gel de la fenêtre complété (aucun redessin au repos : LED fixe sans scintillement, plus de redimensionnement forcé par la fenêtre)"],
        ["1.1.0", "Son plus serré et plus précis : passe-haut d'entrée plus haut, creux bas-médium avant l'écrêtage, coude des diodes plus dur, premier étage plus propre, moins de biais, SDT-2 moins écrasée, gain de 6 à 54 dB ; pédale agrandie dans la même fenêtre ; lumière de la LED sur la façade sans carré visible"],
        ["1.2.0", "Plus de gain, comme la Thorn d'origine (10 à 66 dB, la précision de la 1.1 est conservée par les filtres) ; la LED ne passe plus à l'ambre avec le boost : c'est le potard BOOST transparent qui s'éclaire de l'intérieur et son curseur devient visible"],
-       ["1.3.0", "Son calé sur un enregistrement d'une vraie Thorn (réglages du preset usine 10) : beaucoup plus de gain dès le début de la course du GAIN, médiums creusés comme sur la pédale (environ -16 dB vers 750 Hz avec l'EQ à midi), grave plus généreux, aigus plus doux ; preset 10 Thorn Reference"]],
+       ["1.3.0", "Son calé sur un enregistrement d'une vraie Thorn (réglages du preset usine 10) : beaucoup plus de gain dès le début de la course du GAIN, médiums creusés comme sur la pédale (environ -16 dB vers 750 Hz avec l'EQ à midi), grave plus généreux, aigus plus doux ; preset 10 Thorn Reference"],
+       ["1.3.1", "Ligne d'état et barre de presets dans une police standard sans empattement (Poppins), plus grande et plus lisible"]],
  ver_h=["Version", "Changements"]),
 }
 
