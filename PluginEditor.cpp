@@ -285,6 +285,7 @@ DoornAudioProcessorEditor::DoornAudioProcessorEditor (DoornAudioProcessor& p)
     setResizeLimits (defaultW, defaultH, baseW * 3 / 2, baseH * 3 / 2);
     if (auto* cons = getConstrainer())
         cons->setFixedAspectRatio ((double) baseW / (double) baseH);
+    setOpaque (true);                      // anti-gel : l'hote ne redessine jamais ce qui est derriere la fenetre
     setSize (defaultW, defaultH);
     rebuildCaches();
     startTimerHz (30);
@@ -368,10 +369,20 @@ void DoornAudioProcessorEditor::resized()
 //==============================================================================
 // Anti-gel de la fenetre (Windows) : moteur de rendu logiciel
 //==============================================================================
+// Anti-gel v2 (Studio Wiga) :
+//  1. moteur de rendu logiciel force sur Windows (Direct2D peut figer la fenetre dans certains hotes),
+//     applique a chaque nouvelle fenetre hote (peer) et reverifie toutes les secondes, jamais en boucle ;
+//  2. aucun calcul lourd dans paint() : les caches d'images sont reconstruits par le timer seulement,
+//     apres stabilisation de la taille ou quand l'echelle d'affichage change (au plus toutes les 250 ms) ;
+//  3. chien de garde : si un redessin demande n'est pas arrive au bout de 1,5 s alors que la fenetre est
+//     visible, le moteur de rendu est reapplique et toute la fenetre est redessinee ;
+//  4. cote audio : aucun appel a l'hote ni allocation depuis le thread audio (voir PluginProcessor).
 void DoornAudioProcessorEditor::useSoftwareRenderer()
 {
+    auto* peer = getPeer();
+    if (peer != lastPeer) { lastPeer = peer; repaint(); }
    #if JUCE_WINDOWS
-    if (auto* peer = getPeer())
+    if (peer != nullptr)
     {
         int sw = peer->getAvailableRenderingEngines().indexOf ("Software Renderer");
         if (sw < 0) sw = 0;
@@ -382,6 +393,13 @@ void DoornAudioProcessorEditor::useSoftwareRenderer()
 }
 
 void DoornAudioProcessorEditor::parentHierarchyChanged() { useSoftwareRenderer(); }
+void DoornAudioProcessorEditor::visibilityChanged()      { useSoftwareRenderer(); if (isShowing()) repaint(); }
+
+void DoornAudioProcessorEditor::askRepaint (Rectangle<int> r)
+{
+    if (repaintAskedMs <= 0.0) repaintAskedMs = Time::getMillisecondCounterHiRes();
+    repaint (r);
+}
 
 //==============================================================================
 String DoornAudioProcessorEditor::buildStatusLine() const
@@ -415,10 +433,26 @@ String DoornAudioProcessorEditor::buildPresetLine() const
 //==============================================================================
 void DoornAudioProcessorEditor::timerCallback()
 {
-    useSoftwareRenderer();
     const double now = Time::getMillisecondCounterHiRes();
+    if (getPeer() != lastPeer || now - lastRendererCheckMs > 1000.0) { lastRendererCheckMs = now; useSoftwareRenderer(); }
 
+    // caches : reconstruits ici seulement (jamais dans paint)
     if (resizeSettle > 0 && --resizeSettle == 0) rebuildCaches();
+    else if (resizeSettle == 0 && now - lastScaleCheckMs > 250.0)
+    {
+        lastScaleCheckMs = now;
+        const float sc = physicalScale();
+        if (std::abs (sc - cacheScale) > 0.01f) rebuildCaches (sc);
+    }
+
+    // chien de garde : un redessin demande n'arrive pas -> on relance le moteur de rendu et on redessine tout
+    if (repaintAskedMs > 0.0 && isShowing() && now - repaintAskedMs > 1500.0 && lastPaintMs < repaintAskedMs)
+    {
+        repaintAskedMs = 0.0;
+        lastPeer = nullptr;
+        useSoftwareRenderer();
+        repaint();
+    }
 
     eqSwitch.tick (now);
     modeSwitch.tick (now);
@@ -457,14 +491,14 @@ void DoornAudioProcessorEditor::timerCallback()
     {
         knobs[1].lit = boostLit;
         knobs[1].repaint();
-        repaint (scaled (Rectangle<float> (knobPos[1].x - miniR * 2.2f, knobPos[1].y - miniR * 2.2f, miniR * 4.4f, miniR * 4.4f)));
+        askRepaint (scaled (Rectangle<float> (knobPos[1].x - miniR * 2.2f, knobPos[1].y - miniR * 2.2f, miniR * 4.4f, miniR * 4.4f)));
     }
 
     const float ledNow = ledLevel;        // pas de scintillement : au repos, aucun redessin (anti-gel)
     if (std::abs (ledNow - drawnLed) > 0.004f)
     {
         drawnLed = ledNow;
-        repaint (scaled (glowRect));
+        askRepaint (scaled (glowRect));
     }
 
     const auto l1 = buildStatusLine(), pl = buildPresetLine();
@@ -473,12 +507,12 @@ void DoornAudioProcessorEditor::timerCallback()
     if (std::abs (statusAlpha - drawnStatus) > 0.003f || (statusAlpha > 0.0f && textChanged))
     {
         drawnStatus = statusAlpha;
-        repaint (scaled (statusRect.expanded (4.0f)));
+        askRepaint (scaled (statusRect.expanded (4.0f)));
     }
     if (pl != lastPreset || hoverZone != drawnHover || midiFlash > 0)
     {
         lastPreset = pl; drawnHover = hoverZone;
-        repaint (scaled (presetRect.expanded (3.0f)));
+        askRepaint (scaled (presetRect.expanded (3.0f)));
     }
 }
 
@@ -565,15 +599,14 @@ void DoornAudioProcessorEditor::drawPresetBar (Graphics& g)
 
 void DoornAudioProcessorEditor::paint (Graphics& g)
 {
+    lastPaintMs = Time::getMillisecondCounterHiRes();
+    repaintAskedMs = 0.0;
     g.fillAll (Colours::black);
-    const float pix = jlimit (1.0f, 4.0f, g.getInternalContext().getPhysicalPixelScaleFactor());
-    if (! bgScaled.isValid() || (resizeSettle == 0 && std::abs (pix - cacheScale) > 0.01f))
-        rebuildCaches (pix);
-
-    g.setImageResamplingQuality (bgScaled.getWidth() == background.getWidth() ? Graphics::highResamplingQuality
-                                                                               : Graphics::lowResamplingQuality);
-    if (bgScaled.isValid())
-        g.drawImage (bgScaled, getLocalBounds().toFloat());
+    // anti-gel : aucun rescale ici, on dessine le cache existant (ou l'original en attendant le timer)
+    const Image& bg = bgScaled.isValid() ? bgScaled : background;
+    g.setImageResamplingQuality (&bg == &background ? Graphics::highResamplingQuality : Graphics::lowResamplingQuality);
+    if (bg.isValid())
+        g.drawImage (bg, getLocalBounds().toFloat());
 
     const float s = (float) getHeight() / (float) baseH;
     g.addTransform (AffineTransform::scale (s));

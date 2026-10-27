@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -21,7 +22,8 @@ struct DoornPreset
 };
 
 class DoornAudioProcessor : public juce::AudioProcessor,
-                            private juce::AsyncUpdater
+                            private juce::AsyncUpdater,
+                            private juce::Timer
 {
 public:
     DoornAudioProcessor();
@@ -63,7 +65,17 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     void setParamValue (const juce::String& id, float plain);
-    float raw (const char* id) const { return apvts.getRawParameterValue (id)->load(); }
+    // anti-gel : pointeurs des parametres mis en cache au demarrage (aucune recherche par chaine dans processBlock)
+    float raw (const char* id) const
+    {
+        for (int i = 0; i < numRaw; ++i)
+            if (rawPtr[i] != nullptr && std::strcmp (id, rawIds[i]) == 0) return rawPtr[i]->load (std::memory_order_relaxed);
+        return apvts.getRawParameterValue (id)->load();
+    }
+    static constexpr int numRaw = 12;
+    static constexpr const char* rawIds[numRaw] = { "gain", "boost", "level", "treble", "mids", "bass",
+                                                     "eq", "mode", "boostOn", "active", "holdMomentary", "midiFsMode" };
+    std::atomic<float>* rawPtr[numRaw] {};
 
     static juce::StringArray modeNames() { return { "SDT-2", "Laerm", "SDT-1" }; }
 
@@ -87,7 +99,12 @@ public:
 
 private:
     void handleMidi (juce::MidiBuffer& midi, int numSamples);
-    void setParamFromAudio (const juce::String& id, float plain);   // sans geste d'automation (thread audio)
+    void setParamFromAudio (const char* id, float plain);   // thread audio : met en file, applique sur le thread de messages
+    void timerCallback() override;                           // anti-gel : vide la file (aucun appel a l'hote depuis l'audio)
+    static constexpr int numQueued = 10;
+    static const char* queuedId (int i);
+    std::atomic<float> pendingValue[numQueued];
+    std::atomic<bool>  pendingSet[numQueued];
     void handleAsyncUpdate() override;
     float mapCC (int knob, float raw01);
 

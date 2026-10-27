@@ -6,7 +6,7 @@ if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "" FORCE)
 endif()
 
-project(Doorn VERSION 2.4.0)
+project(Doorn VERSION 2.5.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,7 +21,7 @@ else()
   include(FetchContent)
   FetchContent_Declare(JUCE
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG 8.0.4
+    GIT_TAG 8.0.15
     GIT_SHALLOW ON)
   FetchContent_MakeAvailable(JUCE)
 endif()
@@ -39,7 +39,7 @@ juce_add_plugin(Doorn
   FORMATS VST3
   VST3_CATEGORIES Fx Distortion
   PRODUCT_NAME "Doorn"
-  VERSION 2.4.0
+  VERSION 2.5.0
   DESCRIPTION "High gain distortion (Thorn / Stampede SDT-1 style) - single pedal format"
   IS_SYNTH FALSE
   NEEDS_MIDI_INPUT TRUE

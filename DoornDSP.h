@@ -29,6 +29,7 @@
 #include <cstring>
 
 // v2.4 : TREBLE peut monter beaucoup plus (+21 dB et brillance 4,5 kHz).
+// v2.5 : BASS jusqu'a +18 dB, courses BASS / TREBLE progressives et continues (pas de cassure a midi).
 // v2.3 : plus fuzz, moins distorsion (fuzz 62 %, diodes 60 %, fuzz plus poussee).
 // v2.2 : presence dans le bas rendue (grave +3 dB, bas-mediums 220 / 320 Hz remontes) en gardant les mediums / mediums-aigus.
 // v2.1 : moins sourd, voix stoner medium / medium-aigu : creux des mediums remplace par une poussee 900 Hz / 2 kHz,
@@ -355,12 +356,19 @@ namespace doorn
             preBite.peak (sr, 1800.0, 0.8, DOORN_BITE_DB);     // attaque / mordant avant l'ecretage
             // v1.9 : BASS = plateau 90 Hz + bosse de presence / punch vers 120 Hz (attaque du grave), apres l'ecretage :
             // le grave gagne du corps sans que la distorsion ne compresse davantage
-            eqBass.lowShelf (sr, 90.0, bassDb * 0.6, 0.7);
-            eqBassPunch.peak (sr, 120.0, 1.2, bassDb > 0 ? bassDb * 0.75 : bassDb * 0.4);
+            // v2.5 : BASS et TREBLE recoivent la position normalisee x (-1 .. +1, midi = 0) et suivent une courbe
+            // continue (meme pente de part et d'autre de midi, aucune cassure) qui accelere vers les butees
+            {
+                const double xb = (double) bassDb, xt = (double) trebDb;
+                const double bDb = xb >= 0 ? 12.0 * xb + 6.0 * xb * xb : 12.0 * xb - 3.0 * xb * xb;   // -15 .. +18 dB
+                const double tDb = xt >= 0 ? 12.0 * xt + 10.0 * xt * xt : 12.0 * xt - 3.0 * xt * xt;   // -15 .. +22 dB
+                const double punchK = 0.575 + 0.175 * xb;                                              // 0,40 -> 0,75 sans saut
+                eqBass.lowShelf (sr, 90.0, bDb * 0.6, 0.7);
+                eqBassPunch.peak (sr, 120.0, 1.2, bDb * punchK);
+                eqTreb.highShelf (sr, 3000.0, tDb, 0.7);
+                eqTrebAir.peak (sr, 4500.0, 0.9, xt > 0 ? 7.0 * xt * xt : 0.0);                       // brillance progressive
+            }
             eqMid.peak (sr, 1000.0, 0.85, midDb);
-            // v2.4 : TREBLE plus ample vers le haut (jusqu'a +21 dB + brillance vers 4,5 kHz), coupe inchangee (-15 dB)
-            eqTreb.highShelf (sr, 3000.0, trebDb > 0 ? trebDb * 1.4 : trebDb, 0.7);
-            eqTrebAir.peak (sr, 4500.0, 0.9, trebDb > 0 ? trebDb * 0.5 : 0.0);
         }
 
         // un echantillon ; g1 / g2 : gains des deux etages, eqMix : 0 = EQ retire, 1 = EQ actif
@@ -550,7 +558,7 @@ namespace doorn
             const float gTot = gainDb (sGain.s2) + boostDb (sBoost.s2) * bon;
             const float st1Fc = 14000.0f - 70.0f * clampf (gTot, 0.0f, 60.0f);
             for (int c = 0; c < nCh; ++c)
-                ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 15.0f), eqDb (sMid.s2, 12.0f), eqDb (sTreb.s2, 15.0f), bon * (0.4f + 0.6f * bo));
+                ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 1.0f), eqDb (sMid.s2, 12.0f), eqDb (sTreb.s2, 1.0f), bon * (0.4f + 0.6f * bo));
         }
 
         static inline float safety (float x) noexcept

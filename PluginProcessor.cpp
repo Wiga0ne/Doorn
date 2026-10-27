@@ -42,6 +42,9 @@ DoornAudioProcessor::DoornAudioProcessor()
       apvts (*this, nullptr, "DOORN", createLayout())
 {
     setLatencySamples (doorn::Engine::latencyInt());
+    for (int i = 0; i < numRaw; ++i) rawPtr[i] = apvts.getRawParameterValue (rawIds[i]);
+    for (int i = 0; i < numQueued; ++i) { pendingValue[i] = 0.0f; pendingSet[i] = false; }
+    startTimerHz (60);
 }
 
 AudioProcessorValueTreeState::ParameterLayout DoornAudioProcessor::createLayout()
@@ -91,10 +94,31 @@ void DoornAudioProcessor::setParamValue (const String& id, float plain)
     }
 }
 
-void DoornAudioProcessor::setParamFromAudio (const String& id, float plain)
+// Anti-gel : jamais d'appel a l'hote (setValueNotifyingHost) ni d'allocation depuis le thread audio.
+// Le MIDI met la valeur en file ; un timer du thread de messages la transmet au DAW et a la fenetre.
+const char* DoornAudioProcessor::queuedId (int i)
 {
-    if (auto* prm = apvts.getParameter (id))
-        prm->setValueNotifyingHost (prm->convertTo0to1 (plain));
+    static const char* ids[numQueued] = { "gain", "boost", "level", "treble", "mids", "bass", "eq", "mode", "boostOn", "active" };
+    return ids[jlimit (0, numQueued - 1, i)];
+}
+
+void DoornAudioProcessor::setParamFromAudio (const char* id, float plain)
+{
+    for (int i = 0; i < numQueued; ++i)
+        if (std::strcmp (id, queuedId (i)) == 0)
+        {
+            pendingValue[i].store (plain, std::memory_order_relaxed);
+            pendingSet[i].store (true, std::memory_order_release);
+            return;
+        }
+}
+
+void DoornAudioProcessor::timerCallback()
+{
+    for (int i = 0; i < numQueued; ++i)
+        if (pendingSet[i].exchange (false, std::memory_order_acquire))
+            if (auto* prm = apvts.getParameter (queuedId (i)))
+                prm->setValueNotifyingHost (prm->convertTo0to1 (pendingValue[i].load (std::memory_order_relaxed)));
 }
 
 //==============================================================================
@@ -171,8 +195,11 @@ void DoornAudioProcessor::handleMidi (MidiBuffer& midi, int numSamples)
             {
                 const char* id = cc == ccBoostFs ? "boostOn" : "active";
                 int& prev = cc == ccBoostFs ? prevBoostCC : prevBypassCC;
+                // etat courant = valeur en file si elle existe (bascules rapides sans attendre le timer)
+                const int qi = cc == ccBoostFs ? 8 : 9;
+                const float cur = pendingSet[qi].load() ? pendingValue[qi].load() : raw (id);
                 if (latching)                   setParamFromAudio (id, v >= 64 ? 1.0f : 0.0f);
-                else if (v >= 64 && prev < 64)  setParamFromAudio (id, raw (id) > 0.5f ? 0.0f : 1.0f);
+                else if (v >= 64 && prev < 64)  setParamFromAudio (id, cur > 0.5f ? 0.0f : 1.0f);
                 prev = v;
             }
             else known = false;
