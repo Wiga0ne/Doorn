@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -134,7 +134,7 @@ FACTORY = [  # nom, gain, boost, level, treble, mids, bass, eq, mode, boostOn
     ("Stampede Crunch",        3.0, 5.0, 7.5, 6.0, 6.0, 5.0, 1, 2, 0),
     ("Hardcore Bite",          9.5, 4.0, 6.5, 8.5, 6.5, 4.5, 1, 2, 0),
     ("Sludge Sustain",         10,  5.0, 7.0, 5.0, 2.5, 9.0, 1, 0, 1),
-    ("Noon Flat",              5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 1, 2, 0)]
+    ("Thorn Reference",        4.3, 0.0, 5.8, 5.8, 5.0, 8.0, 1, 2, 0)]
 FACT_DESC = {
  "en": ["The starting point from the Guitar Pedal X review: gain, boost and level at 3 o'clock, treble full, mids at 10:30, bass at 3 o'clock, EQ on.",
         "More gain and a deeper mid scoop: the dense wall for slow, heavy riffs.",
@@ -145,7 +145,7 @@ FACT_DESC = {
         "Low gain on the SDT-1: the edgy crunch side of the Stampede (it never really goes clean).",
         "Near-full gain, bright and mid-forward: the biting hardcore attack of the Stampede.",
         "Full gain, SDT-2, boost on, heavy bass and scooped mids: long, thick sustain for sludge and doom.",
-        "Everything at noon, EQ flat: a neutral reference to start your own sound."],
+        "The settings of a real Thorn on which the sound was matched: gain at 11 o'clock, level and treble at 1 o'clock, mids at noon, bass at 3 o'clock, EQ on, SDT-1, boost off."],
  "fr": ["Le réglage de départ du test Guitar Pedal X : gain, boost et level à 15 h, aigus à fond, médiums à 10 h 30, graves à 15 h, EQ en marche.",
         "Plus de gain et des médiums plus creusés : le mur dense pour les riffs lents et lourds.",
         "EQ retiré du circuit, comme Lennart Bossu avec sa Thorn dans un Ampeg V4 : direct, brut, l'ampli fait le travail de tonalité.",
@@ -155,7 +155,7 @@ FACT_DESC = {
         "Peu de gain sur la SDT-1 : le côté crunch mordant de la Stampede (elle ne devient jamais vraiment claire).",
         "Gain presque au maximum, brillant et en avant dans les médiums : l'attaque hardcore mordante de la Stampede.",
         "Gain à fond, SDT-2, boost enclenché, graves lourds et médiums creusés : un sustain long et épais pour le sludge et le doom.",
-        "Tout à midi, EQ à plat : une référence neutre pour construire votre propre son."]}
+        "Les réglages d'une vraie Thorn sur laquelle le son a été calé : gain à 11 h, level et aigus à 13 h, médiums à midi, graves à 15 h, EQ on, SDT-1, boost coupé."]}
 
 def pc(v): return f"{round(v * 10)} %"
 
@@ -189,10 +189,10 @@ T = {
    ["14", "IN", "Input jack."],
    ["15", "OUT", "Output jack."]],
  ctl_t="4. Controls in detail",
- ctl=[("GAIN", "From about 10 dB to 66 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit."),
+ ctl=[("GAIN", "From about 14 dB to 66 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit."),
       ("BOOST", "As on the Thorn, the boost is <b>additive</b>: it is not a separate pedal in front, it adds its gain (0 to +14 dB, set with the small knob) to the GAIN and raises the input high-pass a little, so the attack gets tighter and the sustain longer. The small knob sets the amount; the BOOST footswitch turns it on and off."),
       ("LEVEL", "Audio taper: 0 = muted, noon about −15 dB, 3 o'clock about −7 dB, full = 0 dB. The three modes are levelled like on the pedal: SDT-2 slightly quieter, Laerm louder."),
-      ("TREBLE · MIDS · BASS", "Active 3-band EQ after the distortion: bass shelf at 100 Hz (±15 dB), mid bell at <b>1 kHz</b> (±12 dB) for surgical presence shaping, treble shelf at 3 kHz (±15 dB). At noon each band is flat."),
+      ("TREBLE · MIDS · BASS", "Active 3-band EQ after the distortion: bass shelf at 100 Hz (±15 dB), mid bell at <b>1 kHz</b> (±12 dB) for surgical presence shaping, treble shelf at 3 kHz (±15 dB). At noon each band is flat. The circuit itself has the deeply scooped mids of the Thorn (about -16 dB around 750 Hz, also with the EQ off): turn MIDS up to bring them back for leads."),
       ("EQ off / on", "With the switch up (off), the EQ is completely lifted out of the signal path, as on the Thorn: the three EQ knobs then have no effect and the raw voice of the circuit goes straight to the amp (Lennart's setting into an Ampeg V4). The change is crossfaded, without any click."),
       ("Modes", "<b>SDT-1</b> (down): the original Stampede, silicon diodes to ground, singing mids. <b>Laerm</b> (centre): Lichtlaerm's own voicing, higher clipping threshold (LED-like), wider bandwidth, more open, more direct and louder (about +4 dB). <b>SDT-2</b> (up): an extra compression stage, more saturated and darker, slightly quieter (about −3 dB), the tones of Living Gate. Changing mode crossfades in a few milliseconds.")],
  modes_cap="The mode switch on SDT-2 (lever up), Laerm (centre) and SDT-1 (lever down).",
@@ -222,13 +222,14 @@ T = {
        "Put a noise gate after Doorn (for example NGATE from Studio Wiga) for tight stops at high gain."],
  tech_t="9. Specifications and version history",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Channels", "Mono or stereo"],
-       ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 10 to 66 dB, + 0 to 14 dB boost"],
+       ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 14 to 66 dB, + 0 to 14 dB boost"],
        ["EQ", "bass 100 Hz ±15 dB, mids 1 kHz ±12 dB, treble 3 kHz ±15 dB, bypassable"],
        ["Processing", "4x oversampling, smoothed parameters, no denormals"], ["CPU", "about 4 % of one core at 48 kHz (stereo)"]],
  hist=[["1.0.0", "First version: Thorn / Stampede SDT-1 model with SDT-1, SDT-2 and Laerm voicings, additive boost, bypassable 3-band EQ, smart relay footswitches, MIDI and expression pedals, 10 factory presets and 9 user presets, Echoflex single pedal format"],
        ["1.0.1", "Status line shows only the control you move; window anti-freeze completed (no redraw at rest: steady LED without flicker, no forced resize from the window)"],
        ["1.1.0", "Tighter, more precise sound: higher input high-pass, low-mid cut before clipping, harder diode knee, cleaner first stage, less bias, SDT-2 less crushed, gain range 6 to 54 dB; bigger pedal in the same window; LED light on the panel without any visible square"],
-       ["1.2.0", "More gain, like the original Thorn (10 to 66 dB, the precision of 1.1 is kept by the filters); the LED no longer turns amber with the boost: the transparent BOOST knob lights up from inside instead and its cursor becomes visible"]],
+       ["1.2.0", "More gain, like the original Thorn (10 to 66 dB, the precision of 1.1 is kept by the filters); the LED no longer turns amber with the boost: the transparent BOOST knob lights up from inside instead and its cursor becomes visible"],
+       ["1.3.0", "Sound matched on a recording of a real Thorn (settings of factory preset 10): much more gain from the start of the GAIN travel, the scooped mids of the pedal (about -16 dB around 750 Hz with the EQ at noon), fuller low end, softer top; preset 10 Thorn Reference"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -258,10 +259,10 @@ T = {
    ["14", "IN", "Jack d'entrée."],
    ["15", "OUT", "Jack de sortie."]],
  ctl_t="4. Les commandes en détail",
- ctl=[("GAIN", "D'environ 10 dB à 66 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit."),
+ ctl=[("GAIN", "D'environ 14 dB à 66 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit."),
       ("BOOST", "Comme sur la Thorn, le boost est <b>additif</b> : ce n'est pas une pédale séparée placée devant, il ajoute son gain (0 à +14 dB, réglé avec le petit potard) au GAIN et remonte un peu le passe-haut d'entrée : l'attaque se resserre et le sustain s'allonge. Le petit potard règle la quantité ; le footswitch BOOST l'enclenche et le coupe."),
       ("LEVEL", "Courbe audio : 0 = coupé, midi environ −15 dB, 15 h environ −7 dB, à fond = 0 dB. Les trois modes sont équilibrés comme sur la pédale : SDT-2 un peu moins fort, Laerm plus fort."),
-      ("TREBLE · MIDS · BASS", "EQ actif 3 bandes après la distorsion : plateau de graves à 100 Hz (±15 dB), cloche de médiums à <b>1 kHz</b> (±12 dB) pour sculpter précisément la présence, plateau d'aigus à 3 kHz (±15 dB). À midi, chaque bande est plate."),
+      ("TREBLE · MIDS · BASS", "EQ actif 3 bandes après la distorsion : plateau de graves à 100 Hz (±15 dB), cloche de médiums à <b>1 kHz</b> (±12 dB) pour sculpter précisément la présence, plateau d'aigus à 3 kHz (±15 dB). À midi, chaque bande est plate. Le circuit lui-même a les médiums très creusés de la Thorn (environ -16 dB vers 750 Hz, EQ off compris) : montez MIDS pour les retrouver en solo."),
       ("EQ off / on", "Inverseur en haut (off) : l'EQ est entièrement retiré du trajet du signal, comme sur la Thorn ; les trois potards d'EQ n'ont alors plus d'effet et la voix brute du circuit part directement dans l'ampli (le réglage de Lennart dans un Ampeg V4). Le changement se fait en fondu, sans aucun clic."),
       ("Modes", "<b>SDT-1</b> (en bas) : la Stampede d'origine, diodes silicium à la masse, médiums qui chantent. <b>Laerm</b> (au centre) : la voix propre à Lichtlaerm, seuil d'écrêtage plus haut (type LED), bande passante plus large, plus ouverte, plus directe et plus forte (environ +4 dB). <b>SDT-2</b> (en haut) : un étage de compression en plus, plus saturée et plus sombre, un peu moins forte (environ −3 dB), les sons de Living Gate. Le changement de mode se fait en fondu en quelques millisecondes.")],
  modes_cap="L'inverseur de mode sur SDT-2 (levier en haut), Laerm (au centre) et SDT-1 (levier en bas).",
@@ -291,13 +292,14 @@ T = {
        "Placez un noise gate après Doorn (par exemple NGATE de Studio Wiga) pour des arrêts nets à fort gain."],
  tech_t="9. Caractéristiques techniques et historique des versions",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Canaux", "Mono ou stéréo"],
-       ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 10 à 66 dB, + 0 à 14 dB de boost"],
+       ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 14 à 66 dB, + 0 à 14 dB de boost"],
        ["EQ", "graves 100 Hz ±15 dB, médiums 1 kHz ±12 dB, aigus 3 kHz ±15 dB, bypassable"],
        ["Traitement", "sur-échantillonnage x4, paramètres lissés, pas de dénormaux"], ["Processeur", "environ 4 % d'un cœur à 48 kHz (stéréo)"]],
  hist=[["1.0.0", "Première version : modèle Thorn / Stampede SDT-1 avec les voix SDT-1, SDT-2 et Laerm, boost additif, EQ 3 bandes bypassable, footswitchs smart relay, MIDI et pédales d'expression, 10 presets usine et 9 presets utilisateur, format pédale simple d'Echoflex"],
        ["1.0.1", "La ligne d'état n'affiche que la commande que l'on bouge ; anti-gel de la fenêtre complété (aucun redessin au repos : LED fixe sans scintillement, plus de redimensionnement forcé par la fenêtre)"],
        ["1.1.0", "Son plus serré et plus précis : passe-haut d'entrée plus haut, creux bas-médium avant l'écrêtage, coude des diodes plus dur, premier étage plus propre, moins de biais, SDT-2 moins écrasée, gain de 6 à 54 dB ; pédale agrandie dans la même fenêtre ; lumière de la LED sur la façade sans carré visible"],
-       ["1.2.0", "Plus de gain, comme la Thorn d'origine (10 à 66 dB, la précision de la 1.1 est conservée par les filtres) ; la LED ne passe plus à l'ambre avec le boost : c'est le potard BOOST transparent qui s'éclaire de l'intérieur et son curseur devient visible"]],
+       ["1.2.0", "Plus de gain, comme la Thorn d'origine (10 à 66 dB, la précision de la 1.1 est conservée par les filtres) ; la LED ne passe plus à l'ambre avec le boost : c'est le potard BOOST transparent qui s'éclaire de l'intérieur et son curseur devient visible"],
+       ["1.3.0", "Son calé sur un enregistrement d'une vraie Thorn (réglages du preset usine 10) : beaucoup plus de gain dès le début de la course du GAIN, médiums creusés comme sur la pédale (environ -16 dB vers 750 Hz avec l'EQ à midi), grave plus généreux, aigus plus doux ; preset 10 Thorn Reference"]],
  ver_h=["Version", "Changements"]),
 }
 
@@ -329,13 +331,13 @@ def section(lang):
     f.append(PageBreak())
     f.append(P(t["ctl_t"], "h1"))
     for h, x in t["ctl"]: f.append(P(h, "h2")); f.append(P(x))
-    f.append(KeepTogether([Spacer(1, 3 * mm), img(modes_img, W * 0.62), P(t["modes_cap"], "small")]))
+    f.append(KeepTogether([Spacer(1, 3 * mm), img(modes_img, W * 0.50), P(t["modes_cap"], "small")]))
     f.append(P(t["fs_t"], "h1")); f += bullets(t["fs"])
-    f.append(KeepTogether([Spacer(1, 2 * mm), img(leds_img, W * 0.72), P(t["led_cap"], "small")]))
+    f.append(KeepTogether([Spacer(1, 2 * mm), img(leds_img, W * 0.60), P(t["led_cap"], "small")]))
     f.append(Spacer(1, 3 * mm))
     f.append(KeepTogether([table([t["midi_hdr"]] + t["midi"], [42 * mm, W - 42 * mm])]))
     f.append(P(t["win_t"], "h1")); f += [P(x) for x in t["win"]]
-    f.append(KeepTogether([img(bar_img, W * 0.70), P(t["bar_cap"], "small")]))
+    f.append(KeepTogether([img(bar_img, W * 0.55), P(t["bar_cap"], "small")]))
     f.append(PageBreak())
     f.append(P(t["pre_t"], "h1")); f += [P(x) for x in t["pre"]]
     rows = [t["fac_hdr"]]

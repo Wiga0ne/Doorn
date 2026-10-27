@@ -28,6 +28,37 @@
 #include <algorithm>
 #include <cstring>
 
+// v1.3 : voix calee sur un enregistrement de la vraie Thorn (reglages de la photo : gain 11 h, level 13 h,
+// treble 13 h, mids midi, bass 15 h, EQ on, SDT-1) : mediums nettement creuses, grave genereux, aigus plus doux,
+// beaucoup plus de gain des le debut de la course du potard
+#ifndef DOORN_SCOOP_HZ
+ #define DOORN_SCOOP_HZ 750.0
+#endif
+#ifndef DOORN_SCOOP_DB
+ #define DOORN_SCOOP_DB -16.0
+#endif
+#ifndef DOORN_SCOOP_Q
+ #define DOORN_SCOOP_Q 0.40
+#endif
+#ifndef DOORN_LOW_DB
+ #define DOORN_LOW_DB 6.0
+#endif
+#ifndef DOORN_HIGH_DB
+ #define DOORN_HIGH_DB -9.0
+#endif
+#ifndef DOORN_LP_SCALE
+ #define DOORN_LP_SCALE 0.55
+#endif
+#ifndef DOORN_G0
+ #define DOORN_G0 14.0f
+#endif
+#ifndef DOORN_G1
+ #define DOORN_G1 52.0f
+#endif
+#ifndef DOORN_GEXP
+ #define DOORN_GEXP 0.80f
+#endif
+
 namespace doorn
 {
     constexpr double pi = 3.14159265358979323846;
@@ -244,7 +275,7 @@ namespace doorn
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &preMud, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
+            for (auto* b : { &hp, &preMud, &outScoop, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset();
         }
@@ -257,10 +288,11 @@ namespace doorn
             prePeak.peak (sr, v.prePeakHz, v.prePeakQ, v.prePeakDb);
             preLP.lowpass (sr, 7200.0, 0.65);
             st1lp.setLP (srO, st1Fc);
-            post1.lowpass (srO, v.postLP, 0.62);
-            post2.lowpass (srO, v.postLP * 1.6, 0.55);
-            outLow.lowShelf (sr, 110.0, v.lowShelfDb);
-            outHigh.highShelf (sr, v.highShelfHz, v.highShelfDb);
+            post1.lowpass (srO, v.postLP * DOORN_LP_SCALE, 0.62);
+            post2.lowpass (srO, v.postLP * DOORN_LP_SCALE * 1.6, 0.55);
+            outLow.lowShelf (sr, 120.0, v.lowShelfDb + DOORN_LOW_DB);
+            outHigh.highShelf (sr, v.highShelfHz, v.highShelfDb + DOORN_HIGH_DB);
+            outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
             outPres.peak (sr, 2900.0, 0.9, v.presenceDb);
             eqBass.lowShelf (sr, 100.0, bassDb, 0.7);
             eqMid.peak (sr, 1000.0, 0.85, midDb);
@@ -298,7 +330,7 @@ namespace doorn
             float y = os.down (up);
 
             y = dcOut.hp (y);
-            y = outPres.process (outHigh.process (outLow.process (y)));
+            y = outPres.process (outHigh.process (outScoop.process (outLow.process (y))));
             const float e = eqTreb.process (eqMid.process (eqBass.process (y)));
             return y + (e - y) * eqMix;
         }
@@ -306,7 +338,7 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, preMud, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
+        Biquad hp, preMud, outScoop, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
         OnePole dcIn, dcOut, inter, st1lp;
     };
 
@@ -339,7 +371,7 @@ namespace doorn
         static float gainDb (float knob)
         {
             const float g = clampf (knob / 10.0f, 0.0f, 1.0f);
-            return 10.0f + 56.0f * std::pow (g, 1.2f);       // v1.2 : 10 a 66 dB (gain de la Thorn), la precision vient des filtres
+            return DOORN_G0 + DOORN_G1 * std::pow (g, DOORN_GEXP);   // v1.3 : beaucoup de gain des le debut de la course
         }
         static float boostDb (float knob) { return 14.0f * clampf (knob / 10.0f, 0.0f, 1.0f); }
         static float eqDb (float knob, float range) { return (clampf (knob, 0.0f, 10.0f) - 5.0f) / 5.0f * range; }
@@ -412,7 +444,7 @@ namespace doorn
             }
         }
 
-        float outTrim = 3.5f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = 7.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
