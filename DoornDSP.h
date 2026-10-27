@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cstring>
 
+// v2.3 : plus fuzz, moins distorsion (fuzz 62 %, diodes 60 %, fuzz plus poussee).
 // v2.2 : presence dans le bas rendue (grave +3 dB, bas-mediums 220 / 320 Hz remontes) en gardant les mediums / mediums-aigus.
 // v2.1 : moins sourd, voix stoner medium / medium-aigu : creux des mediums remplace par une poussee 900 Hz / 2 kHz,
 // couche fuzz plus ouverte, aigus +2 dB, bas-mediums allieges.
@@ -79,7 +80,10 @@
  #define DOORN_LOWMID_HZ 320.0
 #endif
 #ifndef DOORN_FUZZ_MIX
- #define DOORN_FUZZ_MIX 0.30f
+ #define DOORN_FUZZ_MIX 0.62f
+#endif
+#ifndef DOORN_DIST_KEEP
+ #define DOORN_DIST_KEEP 0.60f
 #endif
 #ifndef DOORN_FAT_DB
  #define DOORN_FAT_DB 4.0
@@ -388,11 +392,12 @@ namespace doorn
                 // v2.0 grain stoner : couche fuzz en parallele (deux ecretages en cascade facon Big Muff, asymetriques :
                 // harmoniques paires, grain « baveux » chaud), filtree en bande (pas de grave qui bave, pas de grésillement)
                 {
-                    float fz = fzHP.hp (s) * g2 * 1.6f + 0.12f;
+                    float fz = fzHP.hp (s) * g2 * 2.2f + 0.12f;
                     fz = std::tanh (fz) - 0.1194f;                       // 1er ecretage (biais -> asymetrie)
                     fz = std::tanh (fz * 3.0f + 0.08f) - 0.0798f;         // 2e ecretage
                     fz = fzLP.lp (fz);
-                    t += DOORN_FUZZ_MIX * v.vfPos * fz;
+                    // v2.3 : plus de fuzz, un peu moins de distorsion (la couche diodes est attenuee, la fuzz passe devant)
+                    t = DOORN_DIST_KEEP * t + DOORN_FUZZ_MIX * v.vfPos * fz;
                 }
                 t = post2.process (post1.process (t));
                 up[i] = t;
