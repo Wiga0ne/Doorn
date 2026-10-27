@@ -21,7 +21,8 @@ int main (int argc, char** argv)
         AudioBuffer<float> b (2, 256); MidiBuffer m;
         for (int i = 0; i < 20; ++i) { b.clear(); proc.processBlock (b, m); }
         for (int i = 0; i < 30; ++i) MessageManager::getInstance()->runDispatchLoopUntil (40);
-        if (status) ded->showStatus(); else for (int i = 0; i < 100; ++i) MessageManager::getInstance()->runDispatchLoopUntil (40);
+        if (status) { proc.setParamValue ("gain", 7.6f); }
+        else for (int i = 0; i < 100; ++i) MessageManager::getInstance()->runDispatchLoopUntil (40);
         for (int i = 0; i < 12; ++i) MessageManager::getInstance()->runDispatchLoopUntil (40);
         auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 2.0f);
         File f (out + "/" + name + ".png"); f.deleteFile();

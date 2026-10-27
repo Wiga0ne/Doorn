@@ -110,8 +110,7 @@ private:
     void rebuildCaches (float scale = 0.0f);
     float physicalScale() const;
     juce::Rectangle<int> scaled (juce::Rectangle<float> r) const;
-    juce::String buildStatusLine1() const;
-    juce::String buildStatusLine2() const;
+    juce::String buildStatusLine() const;
     juce::String buildPresetLine() const;
     void drawLed (juce::Graphics&);
     void drawStatus (juce::Graphics&);
@@ -133,15 +132,15 @@ private:
     FootSwitchArea boostFs, bypassFs;
 
     // animation
-    float ledLevel = 0.0f, ledAmber = 0.0f, ledFlicker = 1.0f;
+    float ledLevel = 0.0f, ledAmber = 0.0f;
+    int lastChanged = -1;               // commande affichee dans la ligne d'etat
     float drawnLed = -1.0f, drawnAmber = -1.0f;
     float statusAlpha = 0.0f, drawnStatus = -1.0f;
     double statusUntil = 0.0;
-    juce::String lastLine1, lastLine2, lastPreset;
+    juce::String lastLine1, lastPreset;
     float lastValues[16];
     int lastPresetCounter = 0, lastMidiCount = 0, midiFlash = 0;
     int hoverZone = 0, drawnHover = -1;       // 1 = fleche gauche, 2 = nom, 3 = fleche droite
-    juce::Random rng;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DoornAudioProcessorEditor)
 };

@@ -39,7 +39,8 @@ Kurt Ballou), guide de montage GCI Brutalist Jr (clone de la SDT-1), photo du ci
 
 - Fenêtre ouverte à **493 px de haut** (391 × 493), impossible de la réduire en dessous, proportions bloquées, jusqu'à 150 % (mêmes réglages qu'Echoflex). Clic droit > *Window size* : défaut / 75 % / 100 %.
 - **Barre de presets** sous la ligne d'état : flèches = preset précédent / suivant, clic sur le nom = menu (presets d'usine, presets utilisateur 1 à 9).
-- **Ligne d'état** : valeurs en % des potards en direct, dans la police du visuel ; apparaît quand un réglage bouge, puis s'efface.
+- **Ligne d'état** : uniquement le réglage de la commande que l'on bouge (potards en %, inverseurs, footswitchs), dans la police du visuel ; apparaît quand un réglage bouge, puis s'efface.
+- **Anti-gel** (Windows) : moteur de rendu logiciel forcé, timer 30 Hz qui ne redessine que ce qui a changé (LED fixe, aucun redessin au repos), images en cache, jamais de redimensionnement forcé par la fenêtre.
 - Potards : seul le repère blanc tourne, les reflets du chapeau restent fixes (lumière en haut à gauche). Double-clic = midi.
 - Inverseurs : photo des switchs de la vraie Thorn (positions bas et centre), position haute reconstituée avec la même lumière ; clic = bascule (inverseur 3 positions : clic au-dessus / en dessous du pivot), molette possible.
 - Footswitchs : celui d'Echoflex (référence Studio Wiga), bouton assombri tant qu'on appuie.

@@ -27,7 +27,7 @@ namespace
     const Point<float> boostPos  { 255.2f, 810.4f };
     const Point<float> bypassPos { 508.7f, 810.4f };
     const float footR = 60.0f;
-    const Rectangle<float> statusRect { 160.0f, 590.0f, 440.0f, 50.0f };
+    const Rectangle<float> statusRect { 270.0f, 600.0f, 220.0f, 34.0f };
     const Rectangle<float> presetRect { 235.0f, 646.0f, 290.0f, 25.0f };
 
     const float rotStart = MathConstants<float>::pi * (7.0f / 6.0f);    // -150 degres
@@ -340,8 +340,8 @@ void DoornAudioProcessorEditor::rebuildCaches (float sc)
 
 void DoornAudioProcessorEditor::resized()
 {
-    // tolerance de 2 px (mise a l'echelle Windows 125 / 150 %) avant de forcer la taille minimale
-    if (getHeight() < defaultH - 2) { setScaledHeight (defaultH); return; }
+    // anti-gel : jamais de setSize ici (mise a l'echelle Windows 125 / 150 % : tolerance de quelques px) ;
+    // les limites du constrainer suffisent, sinon boucle de redimensionnement avec l'hote
 
     for (int i = 0; i < DoornAudioProcessor::numKnobs; ++i)
     {
@@ -378,18 +378,18 @@ void DoornAudioProcessorEditor::useSoftwareRenderer()
 void DoornAudioProcessorEditor::parentHierarchyChanged() { useSoftwareRenderer(); }
 
 //==============================================================================
-String DoornAudioProcessorEditor::buildStatusLine1() const
+String DoornAudioProcessorEditor::buildStatusLine() const
 {
-    auto pc = [this] (const char* id) { return String (roundToInt (proc.raw (id) * 10.0f)) + " %"; };
-    return "gain " + pc ("gain") + "    boost " + pc ("boost") + "    level " + pc ("level");
-}
-
-String DoornAudioProcessorEditor::buildStatusLine2() const
-{
-    auto pc = [this] (const char* id) { return String (roundToInt (proc.raw (id) * 10.0f)) + " %"; };
-    if (proc.raw ("eq") < 0.5f)
-        return "eq off  (tone stack lifted)    " + DoornAudioProcessor::modeNames()[roundToInt (proc.raw ("mode"))].toLowerCase();
-    return "treble " + pc ("treble") + "    mids " + pc ("mids") + "    bass " + pc ("bass");
+    // seulement le reglage de la commande qui vient de bouger
+    const int i = lastChanged;
+    if (i < 0) return {};
+    const String id = valueIds[i];
+    const float v = proc.raw (valueIds[i]);
+    if (i < 6) return id + "  " + String (roundToInt (v * 10.0f)) + " %";
+    if (id == "eq")      return v > 0.5f ? "eq on" : "eq off";
+    if (id == "mode")    return DoornAudioProcessor::modeNames()[jlimit (0, 2, roundToInt (v))].toLowerCase();
+    if (id == "boostOn") return v > 0.5f ? "boost on" : "boost off";
+    return v > 0.5f ? "effect on" : "bypass";
 }
 
 String DoornAudioProcessorEditor::buildPresetLine() const
@@ -418,14 +418,17 @@ void DoornAudioProcessorEditor::timerCallback()
     modeSwitch.tick (now);
 
     // la ligne d'etat apparait quand un reglage bouge, reste 2,5 s puis s'efface
+    int changed = -1, numChanged = 0;
     for (int i = 0; i < numValueIds; ++i)
     {
         const float v = proc.raw (valueIds[i]);
-        if (std::abs (v - lastValues[i]) > 1.0e-4f) { lastValues[i] = v; showStatus(); }
+        if (std::abs (v - lastValues[i]) > 1.0e-4f) { lastValues[i] = v; changed = i; ++numChanged; }
     }
-    for (auto& k : knobs) if (k.isMouseButtonDown()) showStatus();
     const int pcount = proc.presetCounter.load();
-    if (pcount != lastPresetCounter) { lastPresetCounter = pcount; showStatus(); }
+    if (pcount != lastPresetCounter) { lastPresetCounter = pcount; numChanged = 0; }   // preset : affiche dans la barre de presets
+    if (numChanged == 1) { lastChanged = changed; showStatus(); }
+    for (int i = 0; i < DoornAudioProcessor::numKnobs; ++i)
+        if (knobs[i].isMouseButtonDown()) { lastChanged = i; showStatus(); }
     const int mc = proc.midiCounter.load();
     if (mc != lastMidiCount) { lastMidiCount = mc; midiFlash = 8; }
     if (midiFlash > 0) --midiFlash;
@@ -443,18 +446,17 @@ void DoornAudioProcessorEditor::timerCallback()
     const float amberT = proc.raw ("boostOn") > 0.5f ? 1.0f : 0.0f;
     ledAmber += (amberT - ledAmber) * 0.40f;
     if (std::abs (ledAmber - amberT) < 0.003f) ledAmber = amberT;
-    ledFlicker = ledLevel > 0.0f ? 0.975f + 0.025f * rng.nextFloat() : 1.0f;
 
-    const float ledNow = ledLevel * ledFlicker;
+    const float ledNow = ledLevel;        // pas de scintillement : au repos, aucun redessin (anti-gel)
     if (std::abs (ledNow - drawnLed) > 0.004f || std::abs (ledAmber - drawnAmber) > 0.004f)
     {
         drawnLed = ledNow; drawnAmber = ledAmber;
         repaint (scaled (glowRect));
     }
 
-    const auto l1 = buildStatusLine1(), l2 = buildStatusLine2(), pl = buildPresetLine();
-    const bool textChanged = l1 != lastLine1 || l2 != lastLine2;
-    lastLine1 = l1; lastLine2 = l2;
+    const auto l1 = buildStatusLine(), pl = buildPresetLine();
+    const bool textChanged = l1 != lastLine1;
+    lastLine1 = l1;
     if (std::abs (statusAlpha - drawnStatus) > 0.003f || (statusAlpha > 0.0f && textChanged))
     {
         drawnStatus = statusAlpha;
@@ -470,7 +472,7 @@ void DoornAudioProcessorEditor::timerCallback()
 //==============================================================================
 void DoornAudioProcessorEditor::drawLed (Graphics& g)
 {
-    const float level = ledLevel * ledFlicker;
+    const float level = ledLevel;
     if (level <= 0.003f) return;
 
     // la facade recoit la lumiere de la LED (calques precalcules : fond x eclairement x couleur)
@@ -517,15 +519,14 @@ void DoornAudioProcessorEditor::drawStatus (Graphics& g)
     const float a = statusAlpha;
     if (a <= 0.0f) return;
     g.setColour (Colour (0xff070a14).withAlpha (0.80f * a));
-    g.fillRoundedRectangle (statusRect, 9.0f);
+    g.fillRoundedRectangle (statusRect, 8.0f);
     g.setColour (Colour (0xffb79f6e).withAlpha (0.45f * a));       // filet couleur des fissures dorees
     g.drawRoundedRectangle (statusRect.reduced (0.75f), 9.0f, 1.3f);
 
-    const Font f (FontOptions (labelFace).withHeight (17.5f));
+    const Font f (FontOptions (labelFace).withHeight (21.0f));
     g.setFont (f);
     g.setColour (inkWhite.withAlpha (a));
-    g.drawFittedText (lastLine1, statusRect.withHeight (26.0f).translated (0.0f, 1.0f).toNearestInt(), Justification::centred, 1, 0.8f);
-    g.drawFittedText (lastLine2, statusRect.withTrimmedTop (24.0f).withTrimmedBottom (2.0f).toNearestInt(), Justification::centred, 1, 0.8f);
+    g.drawFittedText (lastLine1, statusRect.toNearestInt(), Justification::centred, 1, 0.8f);
 }
 
 void DoornAudioProcessorEditor::drawPresetBar (Graphics& g)

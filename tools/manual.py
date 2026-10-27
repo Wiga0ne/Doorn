@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -33,7 +33,7 @@ k = src.height / 958.0
 marks = [  # (numero, x, y) dans le repere 760 x 958 du plugin
     (1, 238, 182), (2, 380, 183), (3, 521, 181), (4, 236, 377), (5, 381, 377), (6, 520, 375),
     (7, 241, 534), (8, 519, 533), (9, 382, 693), (10, 255, 810), (11, 509, 810),
-    (12, 165, 615), (13, 240, 658), (14, 494, 22), (15, 270, 22)]
+    (12, 278, 617), (13, 240, 658), (14, 494, 22), (15, 270, 22)]
 ann = src.copy(); dr = ImageDraw.Draw(ann)
 fnt = ImageFont.truetype(os.path.join(FONTS, "Poppins-Bold.ttf"), 34)
 for n, x, y in marks:
@@ -66,7 +66,7 @@ for m in leds: lstrip.paste(m, (x, 0)); x += m.width + gap
 leds_img = os.path.join(TMP, "doorn_leds.png"); lstrip.save(leds_img)
 
 # barre de presets + ligne d'etat
-bar = crop_u("doorn_status.png", (150, 582, 610, 678))
+bar = crop_u("doorn_status.png", (220, 592, 540, 678))
 bar_img = os.path.join(TMP, "doorn_bar.png"); bar.save(bar_img)
 
 # couverture : pedale detouree (silhouette tools/pedal_mask.png), reflet au sol, halo dore tres doux
@@ -181,7 +181,7 @@ T = {
    ["9", "LED", "Red = effect on, amber = boost engaged, off = bypass. The panel around it is lit by the LED."],
    ["10", "BOOST footswitch", "Boost on / off (hold = momentary)."],
    ["11", "BYPASS footswitch", "Effect on / off (hold = momentary)."],
-   ["12", "Status line", "Live values of the knobs in %; appears when something moves."],
+   ["12", "Status line", "Setting of the knob or switch you just moved (knobs in %); appears when something moves."],
    ["13", "Preset bar", "Arrows = previous / next factory preset, click on the name = preset menu."],
    ["14", "IN", "Input jack."],
    ["15", "OUT", "Output jack."]],
@@ -207,8 +207,8 @@ T = {
        ["Program Change 1-10", "Factory presets"]],
  win_t="6. Window",
  win=["Doorn uses the single pedal format of Echoflex: the window opens at its default size, <b>391 x 493 pixels</b>, and can never be made smaller than that. Drag the bottom-right corner to enlarge it up to 150 % (proportions are kept), or right-click &gt; <b>Window size</b>: Default, 75 %, 100 %.",
-      "The <b>status line</b> shows the knobs in % in the lettering of the pedal; it appears when a setting moves and fades out after 2.5 s. The <b>preset bar</b> under it always shows the current preset, mode and boost / bypass state."],
- bar_cap="Status line (values in %) and preset bar.",
+      "The <b>status line</b> shows only the setting of the knob, switch or footswitch you just moved (knobs in %, e.g. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), in the lettering of the pedal; it appears when a setting moves and fades out after 2.5 s. The <b>preset bar</b> under it always shows the current preset, mode and boost / bypass state."],
+ bar_cap="Status line (the control you just moved) and preset bar.",
  pre_t="7. Presets",
  pre=["Use the arrows of the preset bar, click its name, right-click anywhere, or use the preset menu of your DAW. Right-click &gt; <b>Save user preset</b> stores up to 9 presets of your own."],
  fac_hdr=["PC", "Preset", "Gain / Boost / Level", "Treble / Mids / Bass", "EQ · Mode", "Description"],
@@ -222,7 +222,8 @@ T = {
        ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 6 to 58 dB, + 0 to 14 dB boost"],
        ["EQ", "bass 100 Hz ±15 dB, mids 1 kHz ±12 dB, treble 3 kHz ±15 dB, bypassable"],
        ["Processing", "4x oversampling, smoothed parameters, no denormals"], ["CPU", "about 4 % of one core at 48 kHz (stereo)"]],
- hist=[["1.0.0", "First version: Thorn / Stampede SDT-1 model with SDT-1, SDT-2 and Laerm voicings, additive boost, bypassable 3-band EQ, smart relay footswitches, MIDI and expression pedals, 10 factory presets and 9 user presets, Echoflex single pedal format"]],
+ hist=[["1.0.0", "First version: Thorn / Stampede SDT-1 model with SDT-1, SDT-2 and Laerm voicings, additive boost, bypassable 3-band EQ, smart relay footswitches, MIDI and expression pedals, 10 factory presets and 9 user presets, Echoflex single pedal format"],
+       ["1.0.1", "Status line shows only the control you move; window anti-freeze completed (no redraw at rest: steady LED without flicker, no forced resize from the window)"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -247,7 +248,7 @@ T = {
    ["9", "LED", "Rouge = effet actif, ambre = boost enclenché, éteinte = bypass. La façade autour est éclairée par la LED."],
    ["10", "Footswitch BOOST", "Boost on / off (appui maintenu = momentané)."],
    ["11", "Footswitch BYPASS", "Effet on / off (appui maintenu = momentané)."],
-   ["12", "Ligne d'état", "Valeurs des potards en % en direct ; apparaît quand un réglage bouge."],
+   ["12", "Ligne d'état", "Réglage du potard ou de l'inverseur que vous venez de bouger (potards en %) ; apparaît quand un réglage bouge."],
    ["13", "Barre de presets", "Flèches = preset usine précédent / suivant, clic sur le nom = menu des presets."],
    ["14", "IN", "Jack d'entrée."],
    ["15", "OUT", "Jack de sortie."]],
@@ -273,8 +274,8 @@ T = {
        ["Program Change 1-10", "Presets usine"]],
  win_t="6. Fenêtre",
  win=["Doorn utilise le format pédale simple d'Echoflex : la fenêtre s'ouvre à sa taille par défaut, <b>391 x 493 pixels</b>, et ne peut jamais être réduite en dessous. Tirez le coin en bas à droite pour l'agrandir jusqu'à 150 % (les proportions sont conservées), ou clic droit &gt; <b>Window size</b> : Default, 75 %, 100 %.",
-      "La <b>ligne d'état</b> affiche les potards en %, dans le lettrage de la pédale ; elle apparaît quand un réglage bouge et s'efface au bout de 2,5 s. La <b>barre de presets</b> en dessous affiche en permanence le preset, le mode et l'état boost / bypass."],
- bar_cap="Ligne d'état (valeurs en %) et barre de presets.",
+      "La <b>ligne d'état</b> affiche seulement le réglage du potard, de l'inverseur ou du footswitch que vous venez de bouger (potards en %, par ex. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), dans le lettrage de la pédale ; elle apparaît quand un réglage bouge et s'efface au bout de 2,5 s. La <b>barre de presets</b> en dessous affiche en permanence le preset, le mode et l'état boost / bypass."],
+ bar_cap="Ligne d'état (la commande que vous venez de bouger) et barre de presets.",
  pre_t="7. Presets",
  pre=["Utilisez les flèches de la barre de presets, cliquez sur son nom, faites un clic droit n'importe où, ou passez par le menu de presets de votre DAW. Clic droit &gt; <b>Save user preset</b> enregistre jusqu'à 9 presets personnels."],
  fac_hdr=["PC", "Preset", "Gain / Boost / Level", "Treble / Mids / Bass", "EQ · Mode", "Description"],
@@ -288,7 +289,8 @@ T = {
        ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 6 à 58 dB, + 0 à 14 dB de boost"],
        ["EQ", "graves 100 Hz ±15 dB, médiums 1 kHz ±12 dB, aigus 3 kHz ±15 dB, bypassable"],
        ["Traitement", "sur-échantillonnage x4, paramètres lissés, pas de dénormaux"], ["Processeur", "environ 4 % d'un cœur à 48 kHz (stéréo)"]],
- hist=[["1.0.0", "Première version : modèle Thorn / Stampede SDT-1 avec les voix SDT-1, SDT-2 et Laerm, boost additif, EQ 3 bandes bypassable, footswitchs smart relay, MIDI et pédales d'expression, 10 presets usine et 9 presets utilisateur, format pédale simple d'Echoflex"]],
+ hist=[["1.0.0", "Première version : modèle Thorn / Stampede SDT-1 avec les voix SDT-1, SDT-2 et Laerm, boost additif, EQ 3 bandes bypassable, footswitchs smart relay, MIDI et pédales d'expression, 10 presets usine et 9 presets utilisateur, format pédale simple d'Echoflex"],
+       ["1.0.1", "La ligne d'état n'affiche que la commande que l'on bouge ; anti-gel de la fenêtre complété (aucun redessin au repos : LED fixe sans scintillement, plus de redimensionnement forcé par la fenêtre)"]],
  ver_h=["Version", "Changements"]),
 }
 
