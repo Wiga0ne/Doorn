@@ -1,34 +1,25 @@
 #include "PluginEditor.h"
 #include "BinaryData.h"
+#include "Layout.h"
 
 using namespace juce;
 
 namespace
 {
     // Positions dans le repere de reference 760 x 958 (fond 1520 x 1916 = 2 x 760 x 958),
-    // relevees par tools/make_background.py (assets/layout.json)
-    const Point<float> knobPos[DoornAudioProcessor::numKnobs] =
-    {
-        { 238.30f, 181.85f },   // gain
-        { 380.32f, 183.47f },   // boost (petit potard)
-        { 521.05f, 180.55f },   // level
-        { 236.35f, 376.85f },   // treble
-        { 380.65f, 376.85f },   // mids
-        { 520.40f, 374.90f },   // bass
-    };
-    const float knobR = 45.5f, miniR = 19.5f;
-    const Point<float> eqPos   { 241.22f, 533.83f };
-    const Point<float> modePos { 519.42f, 532.52f };
-    const float leverHalf = 48.0f;                  // demi-cote du sprite de l'inverseur (96 unites)
-    const float leverHitR = 24.0f;
-    const Point<float> ledPos  { 382.27f, 693.08f };
-    const float ledR = 8.6f;
-    const Rectangle<float> glowRect { 262.5f, 573.0f, 240.0f, 240.0f };
-    const Point<float> boostPos  { 255.2f, 810.4f };
-    const Point<float> bypassPos { 508.7f, 810.4f };
-    const float footR = 60.0f;
-    const Rectangle<float> statusRect { 270.0f, 600.0f, 220.0f, 34.0f };
-    const Rectangle<float> presetRect { 235.0f, 646.0f, 290.0f, 25.0f };
+    // generees par tools/make_background.py dans Layout.h (pedale agrandie en v1.1, commandes a l'echelle)
+    const Point<float>* const knobPos = layout::knobPos;
+    const float knobR = layout::knobR, miniR = layout::miniR;
+    const Point<float> eqPos = layout::eqPos, modePos = layout::modePos;
+    const float leverHalf = 48.0f * layout::sc;     // demi-cote du sprite de l'inverseur (96 unites en v1.0)
+    const Point<float> ledPos = layout::ledPos;
+    const float ledR = 8.6f * layout::sc;
+    const Rectangle<float> glowRect = layout::glowRect;
+    const Point<float> boostPos = layout::boostPos, bypassPos = layout::bypassPos;
+    const float footR = 60.0f * layout::sc;
+    // ligne d'etat et barre de presets : entre les inscriptions des inverseurs et la LED
+    const Rectangle<float> statusRect { 270.0f, 604.0f, 220.0f, 32.0f };
+    const Rectangle<float> presetRect { 235.0f, 648.0f, 290.0f, 25.0f };
 
     const float rotStart = MathConstants<float>::pi * (7.0f / 6.0f);    // -150 degres
     const float rotEnd   = MathConstants<float>::pi * (17.0f / 6.0f);   // +150 degres

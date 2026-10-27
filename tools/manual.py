@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.0.1"
+VERSION = "1.1.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -30,10 +30,13 @@ DARK = colors.HexColor("#161A26"); GREY = colors.HexColor("#646A78"); LIGHT = co
 # ---------- capture annotee ----------
 src = Image.open(os.path.join(SHOTS, "doorn_status.png")).convert("RGB")
 k = src.height / 958.0
-marks = [  # (numero, x, y) dans le repere 760 x 958 du plugin
-    (1, 238, 182), (2, 380, 183), (3, 521, 181), (4, 236, 377), (5, 381, 377), (6, 520, 375),
-    (7, 241, 534), (8, 519, 533), (9, 382, 693), (10, 255, 810), (11, 509, 810),
-    (12, 278, 617), (13, 240, 658), (14, 494, 22), (15, 270, 22)]
+import json
+LAY = json.load(open(os.path.join(ROOT, "tools", "layout.json")))
+_k = LAY["knobs"]
+marks = [  # (numero, x, y) dans le repere 760 x 958 du plugin (tools/layout.json)
+    (1, *_k["gain"]), (2, *LAY["mini"]), (3, *_k["level"]), (4, *_k["treble"]), (5, *_k["mids"]), (6, *_k["bass"]),
+    (7, *LAY["toggles"]["eq"]), (8, *LAY["toggles"]["mode"]), (9, *LAY["led"]), (10, *LAY["foot"]["boost"]), (11, *LAY["foot"]["bypass"]),
+    (12, 278, 620), (13, 240, 660), (14, 494, 14), (15, 270, 14)]
 ann = src.copy(); dr = ImageDraw.Draw(ann)
 fnt = ImageFont.truetype(os.path.join(FONTS, "Poppins-Bold.ttf"), 34)
 for n, x, y in marks:
@@ -186,7 +189,7 @@ T = {
    ["14", "IN", "Input jack."],
    ["15", "OUT", "Output jack."]],
  ctl_t="4. Controls in detail",
- ctl=[("GAIN", "From about 6 dB to 58 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit."),
+ ctl=[("GAIN", "From about 6 dB to 54 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit."),
       ("BOOST", "As on the Thorn, the boost is <b>additive</b>: it is not a separate pedal in front, it adds its gain (0 to +14 dB, set with the small knob) to the GAIN and raises the input high-pass a little, so the attack gets tighter and the sustain longer. The small knob sets the amount; the BOOST footswitch turns it on and off."),
       ("LEVEL", "Audio taper: 0 = muted, noon about −15 dB, 3 o'clock about −7 dB, full = 0 dB. The three modes are levelled like on the pedal: SDT-2 slightly quieter, Laerm louder."),
       ("TREBLE · MIDS · BASS", "Active 3-band EQ after the distortion: bass shelf at 100 Hz (±15 dB), mid bell at <b>1 kHz</b> (±12 dB) for surgical presence shaping, treble shelf at 3 kHz (±15 dB). At noon each band is flat."),
@@ -219,11 +222,12 @@ T = {
        "Put a noise gate after Doorn (for example NGATE from Studio Wiga) for tight stops at high gain."],
  tech_t="9. Specifications and version history",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Channels", "Mono or stereo"],
-       ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 6 to 58 dB, + 0 to 14 dB boost"],
+       ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 6 to 54 dB, + 0 to 14 dB boost"],
        ["EQ", "bass 100 Hz ±15 dB, mids 1 kHz ±12 dB, treble 3 kHz ±15 dB, bypassable"],
        ["Processing", "4x oversampling, smoothed parameters, no denormals"], ["CPU", "about 4 % of one core at 48 kHz (stereo)"]],
  hist=[["1.0.0", "First version: Thorn / Stampede SDT-1 model with SDT-1, SDT-2 and Laerm voicings, additive boost, bypassable 3-band EQ, smart relay footswitches, MIDI and expression pedals, 10 factory presets and 9 user presets, Echoflex single pedal format"],
-       ["1.0.1", "Status line shows only the control you move; window anti-freeze completed (no redraw at rest: steady LED without flicker, no forced resize from the window)"]],
+       ["1.0.1", "Status line shows only the control you move; window anti-freeze completed (no redraw at rest: steady LED without flicker, no forced resize from the window)"],
+       ["1.1.0", "Tighter, more precise sound: higher input high-pass, low-mid cut before clipping, harder diode knee, cleaner first stage, less bias, SDT-2 less crushed, gain range 6 to 54 dB; bigger pedal in the same window; LED light on the panel without any visible square"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -253,7 +257,7 @@ T = {
    ["14", "IN", "Jack d'entrée."],
    ["15", "OUT", "Jack de sortie."]],
  ctl_t="4. Les commandes en détail",
- ctl=[("GAIN", "D'environ 6 dB à 58 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit."),
+ ctl=[("GAIN", "D'environ 6 dB à 54 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit."),
       ("BOOST", "Comme sur la Thorn, le boost est <b>additif</b> : ce n'est pas une pédale séparée placée devant, il ajoute son gain (0 à +14 dB, réglé avec le petit potard) au GAIN et remonte un peu le passe-haut d'entrée : l'attaque se resserre et le sustain s'allonge. Le petit potard règle la quantité ; le footswitch BOOST l'enclenche et le coupe."),
       ("LEVEL", "Courbe audio : 0 = coupé, midi environ −15 dB, 15 h environ −7 dB, à fond = 0 dB. Les trois modes sont équilibrés comme sur la pédale : SDT-2 un peu moins fort, Laerm plus fort."),
       ("TREBLE · MIDS · BASS", "EQ actif 3 bandes après la distorsion : plateau de graves à 100 Hz (±15 dB), cloche de médiums à <b>1 kHz</b> (±12 dB) pour sculpter précisément la présence, plateau d'aigus à 3 kHz (±15 dB). À midi, chaque bande est plate."),
@@ -286,11 +290,12 @@ T = {
        "Placez un noise gate après Doorn (par exemple NGATE de Studio Wiga) pour des arrêts nets à fort gain."],
  tech_t="9. Caractéristiques techniques et historique des versions",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Canaux", "Mono ou stéréo"],
-       ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 6 à 58 dB, + 0 à 14 dB de boost"],
+       ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 6 à 54 dB, + 0 à 14 dB de boost"],
        ["EQ", "graves 100 Hz ±15 dB, médiums 1 kHz ±12 dB, aigus 3 kHz ±15 dB, bypassable"],
        ["Traitement", "sur-échantillonnage x4, paramètres lissés, pas de dénormaux"], ["Processeur", "environ 4 % d'un cœur à 48 kHz (stéréo)"]],
  hist=[["1.0.0", "Première version : modèle Thorn / Stampede SDT-1 avec les voix SDT-1, SDT-2 et Laerm, boost additif, EQ 3 bandes bypassable, footswitchs smart relay, MIDI et pédales d'expression, 10 presets usine et 9 presets utilisateur, format pédale simple d'Echoflex"],
-       ["1.0.1", "La ligne d'état n'affiche que la commande que l'on bouge ; anti-gel de la fenêtre complété (aucun redessin au repos : LED fixe sans scintillement, plus de redimensionnement forcé par la fenêtre)"]],
+       ["1.0.1", "La ligne d'état n'affiche que la commande que l'on bouge ; anti-gel de la fenêtre complété (aucun redessin au repos : LED fixe sans scintillement, plus de redimensionnement forcé par la fenêtre)"],
+       ["1.1.0", "Son plus serré et plus précis : passe-haut d'entrée plus haut, creux bas-médium avant l'écrêtage, coude des diodes plus dur, premier étage plus propre, moins de biais, SDT-2 moins écrasée, gain de 6 à 54 dB ; pédale agrandie dans la même fenêtre ; lumière de la LED sur la façade sans carré visible"]],
  ver_h=["Version", "Changements"]),
 }
 

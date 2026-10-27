@@ -20,8 +20,11 @@ SRC, ECHO, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(os.path.dirname(HERE), 'assets')
 
-S = 1.30            # echelle photo -> fond 2x
-TOP = 40.0          # position de la ligne y = 300 de la photo dans le fond 2x (pedale centree)
+# v1.1 : pedale agrandie au maximum dans la meme fenetre (hauteur limitante) :
+# haut des jacks a ~6 px du bord, bas du boitier a ~8 px (l'ombre portee peut etre rognee)
+S = 1.385           # echelle photo -> fond 2x (1.30 en v1.0)
+SC = S / 1.30       # facteur d'agrandissement des commandes par rapport a la v1.0
+TOP = 6.0 - 22.7 * S  # position de la ligne y = 300 de la photo dans le fond 2x
 RIM_Y = 347         # bord superieur du boitier sur la photo (les jacks du dessus sont retires)
 W2, H2 = 1520, 1916
 
@@ -311,7 +314,7 @@ SIL = fa[..., 0].copy()             # silhouette (boitier + jacks) pour la couve
 canvas = canvas * (1 - fa) + np.asarray(full).astype(np.float32) * fa
 
 # embases jack du kit Studio Wiga, sortant du dessus du boitier aux places d'origine (OUT a gauche, IN a droite)
-JL = 196.0                                   # longueur de l'embase dans le fond 2x
+JL = 196.0 * SC                              # longueur de l'embase dans le fond 2x
 jk = Image.open(os.path.join(ASSETS, 'embase_jack_gauche_OUT.png')).convert('RGBA')
 jk = jk.crop(jk.getbbox()).rotate(-90, expand=True)          # dome vers le haut
 jk = jk.crop(jk.getbbox())
@@ -330,7 +333,9 @@ Image.fromarray((SIL * 255).astype(np.uint8)).save(os.path.join(HERE, 'pedal_mas
 
 
 # ---------------------------------------------------------------- 6. footswitches (photo Echoflex, rendu tools/controls_art.py)
-fs_sprite = np.asarray(Image.open(os.path.join(HERE, 'fs.png')).convert('RGBA')).astype(np.float32) / 255
+_fs = Image.open(os.path.join(HERE, 'fs.png')).convert('RGBA')
+_fs = _fs.resize((round(_fs.width * SC), round(_fs.height * SC)), Image.LANCZOS)
+fs_sprite = np.asarray(_fs).astype(np.float32) / 255
 for k, c in FOOT.items():
     cx, cy = T(*c)
     h_, w_ = fs_sprite.shape[:2]
@@ -344,7 +349,7 @@ bg.save(os.path.join(OUT, 'background.jpg'), quality=93, subsampling=0)
 
 # ---------------------------------------------------------------- 7. calques d'eclairage de la LED
 lx2, ly2 = T(*LED)
-RAD = 240
+RAD = int(round(240 * SC))
 x0, y0 = round(lx2 - RAD), round(ly2 - RAD)
 sub = canvas[y0:y0 + 2 * RAD, x0:x0 + 2 * RAD].copy()
 gy, gx = np.mgrid[0:2 * RAD, 0:2 * RAD].astype(np.float32)
@@ -363,7 +368,13 @@ for name, col in (('glow_red', (1.00, 0.16, 0.07)), ('glow_amber', (1.00, 0.55, 
     c = np.array(col, np.float32)
     lit = sub * (1 + I[..., None] * c * 2.4) + halo[..., None] * c * 255
     lit = lit * (1 - tmask[..., None]) + sub * tmask[..., None]
-    Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8)).save(os.path.join(OUT, name + '.png'), optimize=True)
+    # calque avec transparence : opaque seulement la ou la LED eclaire vraiment, retombe a 0 bien avant le bord
+    # (sinon le carre du calque se voit quand la LED s'allume : leger decalage de reechantillonnage)
+    edge = np.clip((RAD - dd) / (RAD * 0.35), 0, 1) ** 2
+    a = np.clip((I + halo * 3.0) * 2.2, 0, 1) * edge
+    a = np.where(tmask > 0, np.maximum(a, 0), a)
+    rgba = np.dstack([np.clip(lit, 0, 255), a * 255]).astype(np.uint8)
+    Image.fromarray(rgba, 'RGBA').save(os.path.join(OUT, name + '.png'), optimize=True)
 
 # ---------------------------------------------------------------- 8. reperes pour le code (unites 760 x 958)
 def U(p): x, y = T(*p); return [round(x / 2, 2), round(y / 2, 2)]
@@ -373,8 +384,21 @@ info = {
     'toggles': {k: U(v) for k, v in TOGGLES.items()},
     'led': U(LED),
     'foot': {k: U(v) for k, v in FOOT.items()}, 'footCirc': 124.0 / math.sqrt(3),
-    'glowRect': [x0 / 2, y0 / 2, RAD, RAD],
+    'glowRect': [x0 / 2, y0 / 2, RAD, RAD], 'sc': SC,
     'title': U(TITLE_C),
 }
 json.dump(info, open(os.path.join(HERE, 'layout.json'), 'w'), indent=1)
+
+# en-tete C++ genere : le plugin lit directement ces reperes
+k = info['knobs']
+def P2(p): return '{ %.2ff, %.2ff }' % (p[0], p[1])
+with open(os.path.join(os.path.dirname(HERE), 'Layout.h'), 'w') as fo:
+    fo.write('// genere par tools/make_background.py - ne pas modifier a la main (repere 760 x 958)\n#pragma once\n')
+    fo.write('#include <juce_graphics/juce_graphics.h>\nnamespace layout\n{\n')
+    fo.write('    const juce::Point<float> knobPos[6] = { %s, %s, %s, %s, %s, %s };\n' % (P2(k['gain']), P2(info['mini']), P2(k['level']), P2(k['treble']), P2(k['mids']), P2(k['bass'])))
+    fo.write('    const float knobR = %.2ff, miniR = %.2ff, sc = %.4ff;\n' % (info['knobR'], info['miniR'], SC))
+    fo.write('    const juce::Point<float> eqPos %s, modePos %s, ledPos %s;\n' % (P2(info['toggles']['eq']), P2(info['toggles']['mode']), P2(info['led'])))
+    fo.write('    const juce::Point<float> boostPos %s, bypassPos %s;\n' % (P2(info['foot']['boost']), P2(info['foot']['bypass'])))
+    g = info['glowRect']
+    fo.write('    const juce::Rectangle<float> glowRect { %.2ff, %.2ff, %.2ff, %.2ff };\n}\n' % (g[0], g[1], g[2], g[3]))
 print(json.dumps(info))

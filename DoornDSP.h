@@ -217,12 +217,13 @@ namespace doorn
     {
         static const ModeVoice v[3] =
         {
+            // v1.1 : passe-haut d'entree plus haut, coude des diodes plus dur, moins de biais -> plus precis, moins baveux
             // SDT-2 : plus compresse et sature, plus sombre, un peu moins fort
-            { 125.0f, 760.0f, 0.75f, 6.5f,   6.0f,  0.26f, 0.24f, 2.4f, 1.0f, 5600.0f,  3.0f, 4800.0f, -4.5f, 0.5f, -1.0f, 0.10f },
+            { 165.0f, 760.0f, 0.75f, 5.5f,   4.0f,  0.28f, 0.26f, 3.0f, 1.0f, 6200.0f,  3.5f, 5200.0f, -3.5f, 1.0f, -1.0f, 0.06f },
             // LAERM : plus ouvert, plus direct, plus fort (seuil haut type LED)
-            {  72.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.58f, 3.6f, 0.0f, 9800.0f,  2.0f, 7000.0f, -1.0f, 2.0f, -0.2f, 0.05f },
+            { 120.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.60f, 4.2f, 0.0f, 10500.0f, 2.5f, 7200.0f, -0.5f, 2.5f, -0.2f, 0.03f },
             // SDT-1 : la Stampede d'origine (silicium a la masse, mediums chantants)
-            {  98.0f, 900.0f, 0.70f, 6.0f,   0.0f,  0.34f, 0.31f, 2.7f, 0.0f, 7400.0f,  3.0f, 6000.0f, -2.0f, 1.0f,  0.0f, 0.12f },
+            { 145.0f, 900.0f, 0.70f, 5.0f,   0.0f,  0.34f, 0.31f, 3.4f, 0.0f, 8200.0f,  3.5f, 6000.0f, -1.5f, 1.5f,  0.0f, 0.07f },
         };
         return v[std::min (2, std::max (0, m))];
     }
@@ -243,7 +244,7 @@ namespace doorn
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
+            for (auto* b : { &hp, &preMud, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset();
         }
@@ -251,7 +252,8 @@ namespace doorn
         // filtres dependant des reglages (appele par blocs de 16 echantillons avec des valeurs lissees)
         void updateFilters (const ModeVoice& v, float hpHz, float st1Fc, float bassDb, float midDb, float trebDb)
         {
-            hp.highpass (sr, hpHz, 0.62);
+            hp.highpass (sr, hpHz, 0.75);
+            preMud.peak (sr, 320.0, 0.9, -4.5);                // creux bas-medium avant l'ecretage : accords nets, pas de bouillie
             prePeak.peak (sr, v.prePeakHz, v.prePeakQ, v.prePeakDb);
             preLP.lowpass (sr, 7200.0, 0.65);
             st1lp.setLP (srO, st1Fc);
@@ -270,7 +272,7 @@ namespace doorn
         {
             x = dcIn.hp (x);
             x = hp.process (x);
-            x = prePeak.process (x);
+            x = prePeak.process (preMud.process (x));
             x = preLP.process (x);
 
             float up[Oversampler4::factor];
@@ -279,14 +281,15 @@ namespace doorn
             {
                 // etage 1 : gain + rails (pompe de charge ~18 V -> marge, coude doux), biais leger
                 float s = up[i] * g1 + v.bias * 0.25f;
-                s = s / std::pow (1.0f + std::pow (std::abs (s), 2.5f), 0.4f);
+                s = s * 0.80f;                                   // rails a ~18 V : l'etage 1 reste propre plus longtemps
+                s = (s / std::pow (1.0f + std::pow (std::abs (s), 3.0f), 1.0f / 3.0f)) * 1.6f;
                 s = st1lp.lp (s);
                 s = inter.hp (s);                               // liaison entre etages (enleve le biais)
 
                 // etage 2 : gain puis diodes a la masse
                 float t = s * g2 + v.bias * 0.08f;
                 if (v.extraComp > 0.0f)                         // SDT-2 : etage de compression en plus
-                    t = std::tanh (t * 1.6f) * 1.4f;
+                    t = std::tanh (t * 1.25f) * 1.5f;
                 const float vf = t >= 0.0f ? v.vfPos : v.vfNeg;
                 t = t / std::pow (1.0f + std::pow (std::abs (t) / vf, v.knee), 1.0f / v.knee);
                 t = post2.process (post1.process (t));
@@ -303,7 +306,7 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
+        Biquad hp, preMud, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
         OnePole dcIn, dcOut, inter, st1lp;
     };
 
@@ -336,7 +339,7 @@ namespace doorn
         static float gainDb (float knob)
         {
             const float g = clampf (knob / 10.0f, 0.0f, 1.0f);
-            return 6.0f + 52.0f * std::pow (g, 1.3f);
+            return 6.0f + 48.0f * std::pow (g, 1.25f);       // v1.1 : maxi 54 dB (moins de bouillie a fond)
         }
         static float boostDb (float knob) { return 14.0f * clampf (knob / 10.0f, 0.0f, 1.0f); }
         static float eqDb (float knob, float range) { return (clampf (knob, 0.0f, 10.0f) - 5.0f) / 5.0f * range; }
@@ -420,7 +423,7 @@ namespace doorn
             const float hpHz = v.hpHz + 45.0f * bon * (0.35f + 0.65f * bo);     // le boost resserre le grave
             // filtre de l'ampli op : la bande passante baisse quand le gain monte
             const float gTot = gainDb (sGain.s2) + boostDb (sBoost.s2) * bon;
-            const float st1Fc = 11000.0f - 90.0f * clampf (gTot, 0.0f, 60.0f);
+            const float st1Fc = 14000.0f - 70.0f * clampf (gTot, 0.0f, 60.0f);
             for (int c = 0; c < nCh; ++c)
                 ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 15.0f), eqDb (sMid.s2, 12.0f), eqDb (sTreb.s2, 15.0f));
         }

@@ -19,7 +19,7 @@ glow = 'glow_amber.png' if bon > 0.5 else 'glow_red.png'
 if ledLevel > 0:
     g = Image.open(os.path.join(AS, glow)).convert('RGBA')
     gx, gy, rw, rh = L['glowRect']
-    g.putalpha(int(255 * ledLevel))
+    a_ = np.asarray(g.split()[3]).astype(np.float32) * ledLevel; g.putalpha(Image.fromarray(a_.astype(np.uint8)))
     bg.alpha_composite(g, (round(gx * K), round(gy * K)))
 
 SS = 4
@@ -59,8 +59,8 @@ bg.alpha_composite(over)
 strip = Image.open(os.path.join(AS, 'toggle_strip.png')).convert('RGBA')
 n = strip.width
 def toggle(c, frame):
-    fr = strip.crop((0, frame * n, n, (frame + 1) * n)).resize((192, 192), Image.LANCZOS)
-    bg.alpha_composite(fr, (round(c[0] * K - 96), round(c[1] * K - 96)))
+    sz = round(192 * L['sc']); fr = strip.crop((0, frame * n, n, (frame + 1) * n)).resize((sz, sz), Image.LANCZOS)
+    bg.alpha_composite(fr, (round(c[0] * K - sz / 2), round(c[1] * K - sz / 2)))
 toggle(L['toggles']['eq'], 4 if eq > 0.5 else 0)        # levier en bas = ON
 toggle(L['toggles']['mode'], {0: 0, 1: 2, 2: 4}[int(mode)])   # haut sdt-2 / milieu laerm / bas sdt-1
 
