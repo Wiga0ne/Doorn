@@ -28,15 +28,15 @@
 #include <algorithm>
 #include <cstring>
 
-// v1.4 : voix de la v1.2 (grave serre, pas de compression en plus) avec plus de gain et des mediums plus creuses
+// v1.5 : voix de la v1.2 avec plus de gain, mediums plus creuses et basses plus precises (filtrage 4e ordre avant l'ecretage)
 #ifndef DOORN_SCOOP_HZ
- #define DOORN_SCOOP_HZ 700.0
+ #define DOORN_SCOOP_HZ 650.0
 #endif
 #ifndef DOORN_SCOOP_DB
- #define DOORN_SCOOP_DB -8.0
+ #define DOORN_SCOOP_DB -12.0
 #endif
 #ifndef DOORN_SCOOP_Q
- #define DOORN_SCOOP_Q 0.65
+ #define DOORN_SCOOP_Q 0.60
 #endif
 #ifndef DOORN_LOW_DB
  #define DOORN_LOW_DB -2.5
@@ -48,10 +48,10 @@
  #define DOORN_LP_SCALE 1.0
 #endif
 #ifndef DOORN_G0
- #define DOORN_G0 14.0f
+ #define DOORN_G0 20.0f
 #endif
 #ifndef DOORN_G1
- #define DOORN_G1 54.0f
+ #define DOORN_G1 52.0f
 #endif
 #ifndef DOORN_GEXP
  #define DOORN_GEXP 1.0f
@@ -248,11 +248,11 @@ namespace doorn
         {
             // v1.1 : passe-haut d'entree plus haut, coude des diodes plus dur, moins de biais -> plus precis, moins baveux
             // SDT-2 : plus compresse et sature, plus sombre, un peu moins fort
-            { 165.0f, 760.0f, 0.75f, 5.5f,   4.0f,  0.28f, 0.26f, 3.8f, 1.0f, 6200.0f,  3.5f, 5200.0f, -3.5f, 1.0f, -1.0f, 0.06f },
+            { 215.0f, 760.0f, 0.75f, 5.5f,   4.0f,  0.28f, 0.26f, 3.8f, 1.0f, 6200.0f,  3.5f, 5200.0f, -3.5f, 1.0f, -1.0f, 0.06f },
             // LAERM : plus ouvert, plus direct, plus fort (seuil haut type LED)
-            { 120.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.60f, 4.2f, 0.0f, 10500.0f, 2.5f, 7200.0f, -0.5f, 2.5f, -1.6f, 0.03f },
+            { 170.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.60f, 4.2f, 0.0f, 10500.0f, 2.5f, 7200.0f, -0.5f, 2.5f, -1.6f, 0.03f },
             // SDT-1 : la Stampede d'origine (silicium a la masse, mediums chantants)
-            { 145.0f, 900.0f, 0.70f, 5.0f,   0.0f,  0.34f, 0.31f, 4.5f, 0.0f, 8200.0f,  3.5f, 6000.0f, -1.5f, 1.5f,  0.0f, 0.07f },
+            { 195.0f, 900.0f, 0.70f, 5.0f,   0.0f,  0.34f, 0.31f, 4.5f, 0.0f, 8200.0f,  3.5f, 6000.0f, -1.5f, 1.5f,  0.0f, 0.07f },
         };
         return v[std::min (2, std::max (0, m))];
     }
@@ -266,6 +266,10 @@ namespace doorn
             sr = sampleRate; srO = sr * Oversampler4::factor;
             os.design();
             dcIn.setLP (sr, 18.0);
+            bassLP.lowpass (sr, 170.0, 0.6);
+            envA = (float) (1.0 - std::exp (-1.0 / (0.002 * sr)));     // suivi du jeu : attaque 2 ms
+            envR = (float) (1.0 - std::exp (-1.0 / (0.030 * sr)));     //               relachement 30 ms
+            refR = (float) (1.0 - std::exp (-1.0 / (0.700 * sr)));     // reference : crete lente (700 ms)
             dcOut.setLP (sr, 12.0);
             inter.setLP (srO, 45.0);
             reset();
@@ -273,22 +277,24 @@ namespace doorn
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &preMud, &outScoop, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
+            for (auto* b : { &hp, &hp2, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
                 b->reset();
-            dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset();
+            dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); bassLP.reset(); env = ref = 0.0f;
         }
 
         // filtres dependant des reglages (appele par blocs de 16 echantillons avec des valeurs lissees)
         void updateFilters (const ModeVoice& v, float hpHz, float st1Fc, float bassDb, float midDb, float trebDb)
         {
-            hp.highpass (sr, hpHz, 0.75);
-            preMud.peak (sr, 320.0, 0.9, -4.5);                // creux bas-medium avant l'ecretage : accords nets, pas de bouillie
+            hp.highpass (sr, hpHz, 0.85);
+            hp2.highpass (sr, hpHz * 0.8, 0.6);               // v1.5 : 4e ordre avant l'ecretage -> basses nettes, sans bave
+            preMud.peak (sr, 300.0, 0.9, -6.0);                // creux bas-medium avant l'ecretage : accords nets, pas de bouillie
             prePeak.peak (sr, v.prePeakHz, v.prePeakQ, v.prePeakDb);
             preLP.lowpass (sr, 7200.0, 0.65);
             st1lp.setLP (srO, st1Fc);
             post1.lowpass (srO, v.postLP * DOORN_LP_SCALE, 0.62);
             post2.lowpass (srO, v.postLP * DOORN_LP_SCALE * 1.6, 0.55);
-            outLow.lowShelf (sr, 120.0, v.lowShelfDb + DOORN_LOW_DB);
+            outLow.peak (sr, 110.0, 1.1, v.lowShelfDb + DOORN_LOW_DB + 2.0);   // grave ferme et serre (bosse etroite)
+            outSub.highpass (sr, 55.0, 0.7);
             outHigh.highShelf (sr, v.highShelfHz, v.highShelfDb + DOORN_HIGH_DB);
             outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
             outPres.peak (sr, 2900.0, 0.9, v.presenceDb);
@@ -301,7 +307,11 @@ namespace doorn
         inline float process (float x, const ModeVoice& v, float g1, float g2, float eqMix) noexcept
         {
             x = dcIn.hp (x);
-            x = hp.process (x);
+            // suivi du niveau de jeu (avant la distorsion) pour des basses qui suivent l'attaque
+            const float ax = std::abs (x);
+            env += (ax - env) * (ax > env ? envA : envR);
+            ref = std::max (env, ref + (env - ref) * refR);
+            x = hp2.process (hp.process (x));
             x = prePeak.process (preMud.process (x));
             x = preLP.process (x);
 
@@ -311,7 +321,7 @@ namespace doorn
             {
                 // etage 1 : gain + rails (pompe de charge ~18 V -> marge, coude doux), biais leger
                 float s = up[i] * g1 + v.bias * 0.25f;
-                s = s * 0.75f;                                   // rails a ~18 V : l'etage 1 reste propre plus longtemps
+                s = s * 0.90f;                                   // rails a ~18 V : l'etage 1 reste propre plus longtemps
                 s = (s / std::pow (1.0f + std::pow (std::abs (s), 3.0f), 1.0f / 3.0f)) * 1.6f;
                 s = st1lp.lp (s);
                 s = inter.hp (s);                               // liaison entre etages (enleve le biais)
@@ -328,7 +338,15 @@ namespace doorn
             float y = os.down (up);
 
             y = dcOut.hp (y);
-            y = outPres.process (outHigh.process (outScoop.process (outLow.process (y))));
+            // basses dynamiques (v1.5) : la distorsion maintient le grave quand la note s'eteint (bave) ;
+            // ici le grave suit le jeu : plein a l'attaque, il retombe (jusqu a -10 dB) quand la note s'eteint
+            {
+                const float rel = ref > 1.0e-6f ? clampf (env / ref, 0.0f, 1.0f) : 1.0f;
+                const float bg = 0.30f + 0.70f * rel;
+                const float lo = bassLP.process (y);
+                y += (bg - 1.0f) * lo;
+            }
+            y = outPres.process (outHigh.process (outScoop.process (outLow.process (outSub.process (y)))));
             const float e = eqTreb.process (eqMid.process (eqBass.process (y)));
             return y + (e - y) * eqMix;
         }
@@ -336,8 +354,10 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, preMud, outScoop, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
+        Biquad hp, hp2, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
         OnePole dcIn, dcOut, inter, st1lp;
+        Biquad bassLP;
+        float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
     };
 
     //--------------------------------------------------------------------------
