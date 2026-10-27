@@ -29,6 +29,10 @@
 #include <cstring>
 
 // v2.4 : TREBLE peut monter beaucoup plus (+21 dB et brillance 4,5 kHz).
+// v2.8 : fin du sifflement apres l'attaque (souffle et intermodulation des partiels aigus amplifies par l'ecretage,
+//        mis en avant par la v2.7) : aigus limites avant l'ecretage (2 poles 5 / 7 kHz, plus d'accent 3,4 kHz),
+//        definition deplacee a 3,2 kHz (cloche large), poussee 2,3 kHz allegee (zone ou les harmoniques de l'ecretage restent nettes), plus d'« air » 6,2 kHz,
+//        sortie et couche fuzz refermees au-dessus de ~8 kHz.
 // v2.7 : clarte / definition : filtres passe-bas du circuit ouverts (avant ecretage, fuzz, ampli op, sortie),
 //        harmoniques aigues avant l'ecretage (3,4 kHz), definition 4 kHz, air 6,2 kHz, anti-grésillement 11 kHz,
 //        poussee 900 Hz / 2,3 kHz allegee (son moins « nasal »).
@@ -50,31 +54,34 @@
  #define DOORN_MIDPUSH_DB 3.0
 #endif
 #ifndef DOORN_HIMID_DB
- #define DOORN_HIMID_DB 3.0
+ #define DOORN_HIMID_DB 1.5
 #endif
 #ifndef DOORN_FIZZ_HZ
- #define DOORN_FIZZ_HZ 11000.0
+ #define DOORN_FIZZ_HZ 9000.0
+#endif
+#ifndef DOORN_PRELP2
+ #define DOORN_PRELP2 7000.0
 #endif
 #ifndef DOORN_PRELP
- #define DOORN_PRELP 12000.0
+ #define DOORN_PRELP 5000.0
 #endif
 #ifndef DOORN_FZLP
- #define DOORN_FZLP 11000.0
+ #define DOORN_FZLP 7500.0
 #endif
 #ifndef DOORN_ST1
- #define DOORN_ST1 19000.0f
+ #define DOORN_ST1 14000.0f
 #endif
 #ifndef DOORN_CLAR_DB
- #define DOORN_CLAR_DB 4.5
+ #define DOORN_CLAR_DB 5.0
 #endif
 #ifndef DOORN_CLAR_HZ
- #define DOORN_CLAR_HZ 4000.0
+ #define DOORN_CLAR_HZ 3200.0
 #endif
 #ifndef DOORN_AIR_DB
- #define DOORN_AIR_DB 4.0
+ #define DOORN_AIR_DB 0.0
 #endif
 #ifndef DOORN_EDGE_DB
- #define DOORN_EDGE_DB 4.0
+ #define DOORN_EDGE_DB 0.0
 #endif
 #ifndef DOORN_SCOOP_HZ
  #define DOORN_SCOOP_HZ 420.0
@@ -92,7 +99,7 @@
  #define DOORN_HIGH_DB 3.5
 #endif
 #ifndef DOORN_LP_SCALE
- #define DOORN_LP_SCALE 1.6
+ #define DOORN_LP_SCALE 1.35
 #endif
 #ifndef DOORN_HP_MUL
  #define DOORN_HP_MUL 1.8f
@@ -361,7 +368,7 @@ namespace doorn
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &eqTrebAir, &boostPres, &preEdge, &outClar, &outAir, &outFizz })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &eqTrebAir, &boostPres, &preEdge, &outClar, &outAir, &outFizz, &preLP2 })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); fzHP.reset(); fzLP.reset(); bassLP.reset(); env = ref = 0.0f;
         }
@@ -376,6 +383,7 @@ namespace doorn
             outFat.peak (sr, DOORN_FAT_HZ, 0.7, DOORN_FAT_DB);      // v2.0 « gras » stoner : corps des accords apres l'ecretage   // v1.8 : bas-mediums rendus APRES l'ecretage (corps sans bave)
             prePeak.peak (sr, v.prePeakHz, v.prePeakQ, v.prePeakDb);
             preLP.lowpass (sr, DOORN_PRELP, 0.65);
+            preLP2.lowpass (sr, DOORN_PRELP2, 0.6);
             preEdge.peak (sr, 3400.0, 0.9, DOORN_EDGE_DB);          // v2.7 definition : harmoniques aigues avant l'ecretage
             outClar.peak (sr, DOORN_CLAR_HZ, 0.8, DOORN_CLAR_DB);   // v2.7 clarte / definition
             outAir.peak (sr, 6200.0, 0.9, DOORN_AIR_DB);            // v2.7 air (cloche : pas de grésillement au-dessus)
@@ -420,7 +428,7 @@ namespace doorn
             ref = std::max (env, ref + (env - ref) * refR);
             x = hp2.process (hp.process (x));
             x = preBite.process (prePeak.process (preMud.process (x)));
-            x = preEdge.process (preLP.process (x));
+            x = preEdge.process (preLP2.process (preLP.process (x)));
 
             float up[Oversampler4::factor];
             os.up (x, up);
@@ -475,7 +483,7 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, eqTrebAir, boostPres, preEdge, outClar, outAir, outFizz;
+        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, eqTrebAir, boostPres, preEdge, outClar, outAir, outFizz, preLP2;
         OnePole dcIn, dcOut, inter, st1lp, fzHP, fzLP;
         Biquad bassLP;
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
@@ -613,7 +621,7 @@ namespace doorn
         bool  gateOpen = true; int gateHold = 0, gateHoldLen = 2880;
         Biquad gateDetHP;
     public:
-        float outTrim = -6.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = -4.4f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:

@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "2.7.0"
+VERSION = "2.8.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -231,10 +231,10 @@ T = {
        ["1.0.1 - 1.4.0", "Status line limited to the control you move, anti-freeze, tighter sound, bigger pedal, red-only LED with lit BOOST knob, sound matched on a recording of the real Thorn, readable status font"],
        ["1.5.0 - 1.9.0", "More gain and bite without the boost, tight low end (bass kept out of the clipping and given back after it), output that follows your picking, BASS with punch, clearly audible boost"],
        ["2.0.0 - 2.3.0", "Stoner grain and fat: parallel Big Muff-style fuzz layer that now leads the distortion (fuzz about 62 %), body bump around 220 Hz, stoner mid / high-mid voice (push around 900 Hz and 2.3 kHz, no longer muffled), low end and low-mids back with presence, headroom kept so nothing gets squashed"],
-       ["2.4.0", "TREBLE goes much higher: up to +21 dB (instead of +15) with extra sparkle around 4.5 kHz; the cut side is unchanged"],
-       ["2.5.0", "BASS goes higher too (up to +18 dB); BASS and TREBLE travel is smooth and natural, no sudden change at noon; stronger anti-freeze for the window (no heavy work while drawing, watchdog, no host call from the audio thread), JUCE 8.0.15"],
+       ["2.4.0 - 2.5.0", "TREBLE up to +21 dB and BASS up to +18 dB with smooth, natural travel; stronger anti-freeze, JUCE 8.0.15"],
        ["2.6.0", "Built-in noise gate (right-click &gt; Noise gate: Off / Light / Medium / Strong, Medium by default): no more hiss or hum when you stop playing, attacks never cut, notes fade naturally"],
-       ["2.7.0", "Clearer, more defined sound on every preset: the circuit's low-pass filters are opened up, more high harmonics before the clipping, definition around 4 kHz and air around 6 kHz, anti-fizz above 11 kHz, lighter nasal mid push; lows and mids kept. Presets with TREBLE at max lowered (Signature Start, Wall of Thorns, Hardcore Bite)"]],
+       ["2.7.0", "Clearer, more defined sound on every preset: the circuit's low-pass filters are opened up, more high harmonics before the clipping, definition around 4 kHz and air around 6 kHz, anti-fizz above 11 kHz, lighter nasal mid push; lows and mids kept. Presets with TREBLE at max lowered (Signature Start, Wall of Thorns, Hardcore Bite)"],
+       ["2.8.0", "No more whistle after the pick attack: the hiss and the intermodulation of the string's upper partials, amplified by the clipping, were brought forward by 2.7. Highs are now limited before the clipping and the definition sits around 3.2 kHz, where the harmonics of the clipping stay clean; no more air boost at 6 kHz. Clear and defined, without the sizzle"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -305,10 +305,10 @@ T = {
        ["1.0.1 - 1.4.0", "Ligne d'état limitée à la commande que l'on bouge, anti-gel, son plus serré, pédale agrandie, LED rouge seule et potard BOOST éclairé, son calé sur un enregistrement de la vraie Thorn, police de ligne d'état lisible"],
        ["1.5.0 - 1.9.0", "Plus de gain et de mordant sans boost, grave serré (tenu à l'écart de l'écrêtage puis rendu après), sortie qui suit le jeu, BASS avec du punch, boost bien audible"],
        ["2.0.0 - 2.3.0", "Grain et gras stoner : couche fuzz en parallèle façon Big Muff qui passe devant la distorsion (fuzz environ 62 %), bosse de corps vers 220 Hz, voix stoner médium / médium-aigu (poussée vers 900 Hz et 2,3 kHz, fini le son sourd), grave et bas-médiums de retour avec de la présence, marge gardée pour ne rien écraser"],
-       ["2.4.0", "TREBLE monte beaucoup plus : jusqu'à +21 dB (au lieu de +15) avec de la brillance en plus vers 4,5 kHz ; la coupe ne change pas"],
-       ["2.5.0", "BASS monte plus aussi (jusqu'à +18 dB) ; courses de BASS et TREBLE douces et naturelles, plus de changement brusque à midi ; anti-gel renforcé pour la fenêtre (aucun calcul lourd au dessin, chien de garde, aucun appel à l'hôte depuis le thread audio), JUCE 8.0.15"],
+       ["2.4.0 - 2.5.0", "TREBLE jusqu'à +21 dB et BASS jusqu'à +18 dB avec des courses douces et naturelles ; anti-gel renforcé, JUCE 8.0.15"],
        ["2.6.0", "Noise gate intégré (clic droit &gt; Noise gate : Off / Light / Medium / Strong, Medium par défaut) : plus de souffle ni de ronflement quand on arrête de jouer, attaques jamais coupées, notes qui s'éteignent naturellement"],
-       ["2.7.0", "Son plus clair et plus défini sur tous les presets : filtres passe-bas du circuit ouverts, plus d'harmoniques aiguës avant l'écrêtage, définition vers 4 kHz et air vers 6 kHz, anti-grésillement au-dessus de 11 kHz, poussée nasale des médiums allégée ; graves et médiums conservés. Presets avec TREBLE au maximum baissés (Signature Start, Wall of Thorns, Hardcore Bite)"]],
+       ["2.7.0", "Son plus clair et plus défini sur tous les presets : filtres passe-bas du circuit ouverts, plus d'harmoniques aiguës avant l'écrêtage, définition vers 4 kHz et air vers 6 kHz, anti-grésillement au-dessus de 11 kHz, poussée nasale des médiums allégée ; graves et médiums conservés. Presets avec TREBLE au maximum baissés (Signature Start, Wall of Thorns, Hardcore Bite)"],
+       ["2.8.0", "Fini le sifflement après l'attaque du médiator : le souffle et l'intermodulation des partiels aigus de la corde, amplifiés par l'écrêtage, avaient été mis en avant par la 2.7. Les aigus sont maintenant limités avant l'écrêtage et la définition est placée vers 3,2 kHz, là où les harmoniques de l'écrêtage restent nettes ; plus d'accent d'air à 6 kHz. Clair et défini, sans grésillement"]],
  ver_h=["Version", "Changements"]),
 }
 
