@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cstring>
 
+// v1.9 : BASS avec punch / presence apres l'ecretage (sans compression), boost bien audible, gain encore plus tot.
 // v1.8 : le gain monte plus tot sur la course du potard (plein grain des ~9 h), bas-mediums rendus
 // (creux avant ecretage adouci, bosse de +4 dB a 320 Hz apres ecretage), sortie +3 dB.
 // v1.7 : graves / bas-mediums nets : le grave est retire AVANT l'ecretage (passe-haut x1,8, liaison entre etages a 180 Hz)
@@ -80,7 +81,7 @@
  #define DOORN_G1 46.0f
 #endif
 #ifndef DOORN_GEXP
- #define DOORN_GEXP 0.6f
+ #define DOORN_GEXP 0.50f
 #endif
 
 namespace doorn
@@ -304,13 +305,13 @@ namespace doorn
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &eqBass, &eqMid, &eqTreb })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &boostPres })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); bassLP.reset(); env = ref = 0.0f;
         }
 
         // filtres dependant des reglages (appele par blocs de 16 echantillons avec des valeurs lissees)
-        void updateFilters (const ModeVoice& v, float hpHz, float st1Fc, float bassDb, float midDb, float trebDb)
+        void updateFilters (const ModeVoice& v, float hpHz, float st1Fc, float bassDb, float midDb, float trebDb, float boostMix)
         {
             hp.highpass (sr, hpHz, 0.85);
             hp2.highpass (sr, hpHz * 0.8, 0.6);               // v1.5 : 4e ordre avant l'ecretage -> basses nettes, sans bave
@@ -326,8 +327,12 @@ namespace doorn
             outHigh.highShelf (sr, v.highShelfHz, v.highShelfDb + DOORN_HIGH_DB);
             outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
             outPres.peak (sr, 2900.0, 0.9, v.presenceDb);
+            boostPres.peak (sr, 1600.0, 0.7, 4.5 * boostMix);   // v1.9 boost : mediums-aigus en avant (le son passe devant)
             preBite.peak (sr, 1800.0, 0.8, DOORN_BITE_DB);     // attaque / mordant avant l'ecretage
-            eqBass.lowShelf (sr, 100.0, bassDb, 0.7);
+            // v1.9 : BASS = plateau 90 Hz + bosse de presence / punch vers 120 Hz (attaque du grave), apres l'ecretage :
+            // le grave gagne du corps sans que la distorsion ne compresse davantage
+            eqBass.lowShelf (sr, 90.0, bassDb * 0.6, 0.7);
+            eqBassPunch.peak (sr, 120.0, 1.2, bassDb > 0 ? bassDb * 0.75 : bassDb * 0.4);
             eqMid.peak (sr, 1000.0, 0.85, midDb);
             eqTreb.highShelf (sr, 3000.0, trebDb, 0.7);
         }
@@ -367,6 +372,7 @@ namespace doorn
             float y = os.down (up);
 
             y = dcOut.hp (y);
+            y = boostPres.process (y);
             // basses dynamiques (v1.5) : la distorsion maintient le grave quand la note s'eteint (bave) ;
             // ici le grave suit le jeu : plein a l'attaque, il retombe (jusqu a -10 dB) quand la note s'eteint
             {
@@ -379,14 +385,14 @@ namespace doorn
                 y *= clampf (std::pow (rel + 1.0e-4f, 0.33f), 0.35f, 1.0f);
             }
             y = outPres.process (outHigh.process (outScoop.process (outLowMid.process (outLow.process (outSub.process (y))))));
-            const float e = eqTreb.process (eqMid.process (eqBass.process (y)));
+            const float e = eqTreb.process (eqMid.process (eqBassPunch.process (eqBass.process (y))));
             return y + (e - y) * eqMix;
         }
 
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, eqBass, eqMid, eqTreb;
+        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, eqBass, eqBassPunch, eqMid, eqTreb, boostPres;
         OnePole dcIn, dcOut, inter, st1lp;
         Biquad bassLP;
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
@@ -423,7 +429,7 @@ namespace doorn
             const float g = clampf (knob / 10.0f, 0.0f, 1.0f);
             return DOORN_G0 + DOORN_G1 * std::pow (g, DOORN_GEXP);   // v1.3 : beaucoup de gain des le debut de la course
         }
-        static float boostDb (float knob) { return 14.0f * clampf (knob / 10.0f, 0.0f, 1.0f); }
+        static float boostDb (float knob) { return 20.0f * clampf (knob / 10.0f, 0.0f, 1.0f); }   // v1.9 : 0 a +20 dB
         static float eqDb (float knob, float range) { return (clampf (knob, 0.0f, 10.0f) - 5.0f) / 5.0f * range; }
         // LEVEL : 0 = coupe, midi ~ -15 dB, 15 h ~ -7 dB, maxi 0 dB (courbe audio)
         static float levelDb (float knob)
@@ -475,7 +481,8 @@ namespace doorn
                 const float totalDb = gainDb (gn) + boostDb (bo) * bon + cv.gainOffsetDb;
                 const float g1 = dbToGain (std::min (totalDb, 30.0f) * 0.85f - 2.0f);
                 const float g2 = dbToGain (std::max (0.0f, totalDb - 30.0f) + 3.0f) * 0.6f;
-                const float out = dbToGain (levelDb (lv) + mk + outTrim) * sMode.s2;
+                // v1.9 boost : +0 a +4 dB de niveau en plus (comme un vrai boost devant un etage deja sature)
+                const float out = dbToGain (levelDb (lv) + mk + outTrim + 4.0f * bon * clampf (bo / 10.0f, 0.0f, 1.0f)) * sMode.s2;
 
                 for (int c = 0; c < nCh; ++c)
                 {
@@ -494,7 +501,7 @@ namespace doorn
             }
         }
 
-        float outTrim = 8.5f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = 6.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
@@ -502,12 +509,12 @@ namespace doorn
         {
             const float bon = sBoostOn.s2;
             const float bo  = sBoost.s2 / 10.0f;
-            const float hpHz = v.hpHz * DOORN_HP_MUL + 45.0f * bon * (0.35f + 0.65f * bo);     // le boost resserre le grave
+            const float hpHz = v.hpHz * DOORN_HP_MUL + 70.0f * bon * (0.35f + 0.65f * bo);     // le boost resserre le grave
             // filtre de l'ampli op : la bande passante baisse quand le gain monte
             const float gTot = gainDb (sGain.s2) + boostDb (sBoost.s2) * bon;
             const float st1Fc = 14000.0f - 70.0f * clampf (gTot, 0.0f, 60.0f);
             for (int c = 0; c < nCh; ++c)
-                ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 15.0f), eqDb (sMid.s2, 12.0f), eqDb (sTreb.s2, 15.0f));
+                ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 15.0f), eqDb (sMid.s2, 12.0f), eqDb (sTreb.s2, 15.0f), bon * (0.4f + 0.6f * bo));
         }
 
         static inline float safety (float x) noexcept
