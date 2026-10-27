@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cstring>
 
+// v2.0 : grain et gras stoner : couche fuzz parallele (facon Big Muff, asymetrique) + bosse de corps vers 220 Hz apres ecretage.
 // v1.9 : BASS avec punch / presence apres l'ecretage (sans compression), boost bien audible, gain encore plus tot.
 // v1.8 : le gain monte plus tot sur la course du potard (plein grain des ~9 h), bas-mediums rendus
 // (creux avant ecretage adouci, bosse de +4 dB a 320 Hz apres ecretage), sortie +3 dB.
@@ -73,6 +74,15 @@
 #endif
 #ifndef DOORN_LOWMID_HZ
  #define DOORN_LOWMID_HZ 320.0
+#endif
+#ifndef DOORN_FUZZ_MIX
+ #define DOORN_FUZZ_MIX 0.30f
+#endif
+#ifndef DOORN_FAT_DB
+ #define DOORN_FAT_DB 3.0
+#endif
+#ifndef DOORN_FAT_HZ
+ #define DOORN_FAT_HZ 220.0
 #endif
 #ifndef DOORN_G0
  #define DOORN_G0 26.0f
@@ -300,14 +310,16 @@ namespace doorn
             refR = (float) (1.0 - std::exp (-1.0 / (0.700 * sr)));     // reference : crete lente (700 ms)
             dcOut.setLP (sr, 12.0);
             inter.setLP (srO, DOORN_INTER_HZ);
+            fzHP.setLP (srO, 140.0);
+            fzLP.setLP (srO, 4600.0);
             reset();
         }
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &boostPres })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &boostPres })
                 b->reset();
-            dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); bassLP.reset(); env = ref = 0.0f;
+            dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); fzHP.reset(); fzLP.reset(); bassLP.reset(); env = ref = 0.0f;
         }
 
         // filtres dependant des reglages (appele par blocs de 16 echantillons avec des valeurs lissees)
@@ -316,7 +328,8 @@ namespace doorn
             hp.highpass (sr, hpHz, 0.85);
             hp2.highpass (sr, hpHz * 0.8, 0.6);               // v1.5 : 4e ordre avant l'ecretage -> basses nettes, sans bave
             preMud.peak (sr, 300.0, 0.9, DOORN_MUD_DB);        // creux bas-medium avant l'ecretage (v1.8 : -3 dB au lieu de -6) : accords nets sans perdre le corps
-            outLowMid.peak (sr, DOORN_LOWMID_HZ, 0.9, DOORN_LOWMID_DB);   // v1.8 : bas-mediums rendus APRES l'ecretage (corps sans bave)
+            outLowMid.peak (sr, DOORN_LOWMID_HZ, 0.9, DOORN_LOWMID_DB);
+            outFat.peak (sr, DOORN_FAT_HZ, 0.7, DOORN_FAT_DB);      // v2.0 « gras » stoner : corps des accords apres l'ecretage   // v1.8 : bas-mediums rendus APRES l'ecretage (corps sans bave)
             prePeak.peak (sr, v.prePeakHz, v.prePeakQ, v.prePeakDb);
             preLP.lowpass (sr, 7200.0, 0.65);
             st1lp.setLP (srO, st1Fc);
@@ -366,6 +379,15 @@ namespace doorn
                     t = std::tanh (t * 1.25f) * 1.5f;
                 const float vf = t >= 0.0f ? v.vfPos : v.vfNeg;
                 t = t / std::pow (1.0f + std::pow (std::abs (t) / vf, v.knee), 1.0f / v.knee);
+                // v2.0 grain stoner : couche fuzz en parallele (deux ecretages en cascade facon Big Muff, asymetriques :
+                // harmoniques paires, grain « baveux » chaud), filtree en bande (pas de grave qui bave, pas de grésillement)
+                {
+                    float fz = fzHP.hp (s) * g2 * 1.6f + 0.12f;
+                    fz = std::tanh (fz) - 0.1194f;                       // 1er ecretage (biais -> asymetrie)
+                    fz = std::tanh (fz * 3.0f + 0.08f) - 0.0798f;         // 2e ecretage
+                    fz = fzLP.lp (fz);
+                    t += DOORN_FUZZ_MIX * v.vfPos * fz;
+                }
                 t = post2.process (post1.process (t));
                 up[i] = t;
             }
@@ -384,7 +406,7 @@ namespace doorn
                 // comme un ampli qui « respire » ; jusqu'a -9 dB quand la note s'eteint
                 y *= clampf (std::pow (rel + 1.0e-4f, 0.33f), 0.35f, 1.0f);
             }
-            y = outPres.process (outHigh.process (outScoop.process (outLowMid.process (outLow.process (outSub.process (y))))));
+            y = outPres.process (outHigh.process (outScoop.process (outFat.process (outLowMid.process (outLow.process (outSub.process (y)))))));
             const float e = eqTreb.process (eqMid.process (eqBassPunch.process (eqBass.process (y))));
             return y + (e - y) * eqMix;
         }
@@ -392,8 +414,8 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, eqBass, eqBassPunch, eqMid, eqTreb, boostPres;
-        OnePole dcIn, dcOut, inter, st1lp;
+        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, eqBass, eqBassPunch, eqMid, eqTreb, boostPres;
+        OnePole dcIn, dcOut, inter, st1lp, fzHP, fzLP;
         Biquad bassLP;
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
     };
@@ -501,7 +523,7 @@ namespace doorn
             }
         }
 
-        float outTrim = 6.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = 3.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
