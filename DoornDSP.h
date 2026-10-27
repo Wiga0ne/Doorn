@@ -221,7 +221,7 @@ namespace doorn
             // SDT-2 : plus compresse et sature, plus sombre, un peu moins fort
             { 165.0f, 760.0f, 0.75f, 5.5f,   4.0f,  0.28f, 0.26f, 3.0f, 1.0f, 6200.0f,  3.5f, 5200.0f, -3.5f, 1.0f, -1.0f, 0.06f },
             // LAERM : plus ouvert, plus direct, plus fort (seuil haut type LED)
-            { 120.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.60f, 4.2f, 0.0f, 10500.0f, 2.5f, 7200.0f, -0.5f, 2.5f, -0.2f, 0.03f },
+            { 120.0f, 1250.0f, 0.60f, 3.0f, -3.5f,  0.70f, 0.60f, 4.2f, 0.0f, 10500.0f, 2.5f, 7200.0f, -0.5f, 2.5f, -1.6f, 0.03f },
             // SDT-1 : la Stampede d'origine (silicium a la masse, mediums chantants)
             { 145.0f, 900.0f, 0.70f, 5.0f,   0.0f,  0.34f, 0.31f, 3.4f, 0.0f, 8200.0f,  3.5f, 6000.0f, -1.5f, 1.5f,  0.0f, 0.07f },
         };
@@ -281,7 +281,7 @@ namespace doorn
             {
                 // etage 1 : gain + rails (pompe de charge ~18 V -> marge, coude doux), biais leger
                 float s = up[i] * g1 + v.bias * 0.25f;
-                s = s * 0.80f;                                   // rails a ~18 V : l'etage 1 reste propre plus longtemps
+                s = s * 1.00f;                                   // rails a ~18 V : l'etage 1 reste propre plus longtemps
                 s = (s / std::pow (1.0f + std::pow (std::abs (s), 3.0f), 1.0f / 3.0f)) * 1.6f;
                 s = st1lp.lp (s);
                 s = inter.hp (s);                               // liaison entre etages (enleve le biais)
@@ -339,7 +339,7 @@ namespace doorn
         static float gainDb (float knob)
         {
             const float g = clampf (knob / 10.0f, 0.0f, 1.0f);
-            return 6.0f + 48.0f * std::pow (g, 1.25f);       // v1.1 : maxi 54 dB (moins de bouillie a fond)
+            return 10.0f + 56.0f * std::pow (g, 1.2f);       // v1.2 : 10 a 66 dB (gain de la Thorn), la precision vient des filtres
         }
         static float boostDb (float knob) { return 14.0f * clampf (knob / 10.0f, 0.0f, 1.0f); }
         static float eqDb (float knob, float range) { return (clampf (knob, 0.0f, 10.0f) - 5.0f) / 5.0f * range; }

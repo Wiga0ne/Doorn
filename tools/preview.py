@@ -15,7 +15,7 @@ K = 2.0     # fond 2x
 
 bg = Image.open(os.path.join(AS, 'background.jpg')).convert('RGBA')
 ledLevel = 1.0 if on > 0.5 else 0.0
-glow = 'glow_amber.png' if bon > 0.5 else 'glow_red.png'
+glow = 'glow_red.png'
 if ledLevel > 0:
     g = Image.open(os.path.join(AS, glow)).convert('RGBA')
     gx, gy, rw, rh = L['glowRect']

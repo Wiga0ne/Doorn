@@ -364,7 +364,7 @@ ta = Image.fromarray((TITLE_ALPHA * 255).astype(np.uint8)).resize((nw, nh), Imag
 tfull = Image.new('L', (W2, H2), 0); tfull.paste(ta, (round(ox), round(oy)))
 tmask = np.asarray(tfull.filter(ImageFilter.MaxFilter(3))).astype(np.float32)[y0:y0 + 2 * RAD, x0:x0 + 2 * RAD] / 255
 halo = 0.10 * lamb(26)
-for name, col in (('glow_red', (1.00, 0.16, 0.07)), ('glow_amber', (1.00, 0.55, 0.12))):
+for name, col in (('glow_red', (1.00, 0.16, 0.07)),):
     c = np.array(col, np.float32)
     lit = sub * (1 + I[..., None] * c * 2.4) + halo[..., None] * c * 255
     lit = lit * (1 - tmask[..., None]) + sub * tmask[..., None]

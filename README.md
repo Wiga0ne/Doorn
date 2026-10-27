@@ -18,7 +18,7 @@ Usage personnel. Windows 11 et macOS (binaire universel).
 
 | Élément | Thorn / SDT-1 | Dans Doorn |
 |---|---|---|
-| GAIN | Distorsion dure, mur de son, passe en fuzz au-delà de 13 h | 6 à 54 dB répartis sur deux étages d'ampli op (alimentation ~18 V par pompe de charge : grande réserve), écrêtage par diodes à la masse, sur-échantillonnage x4 |
+| GAIN | Distorsion dure, mur de son, passe en fuzz au-delà de 13 h | 10 à 66 dB répartis sur deux étages d'ampli op (alimentation ~18 V par pompe de charge : grande réserve), écrêtage par diodes à la masse, sur-échantillonnage x4 |
 | LEVEL | Volume de sortie | Courbe audio, 0 = coupé, maxi = 0 dBFS de marge |
 | BOOST (petit potard + footswitch) | Boost réglable, **additif** : s'ajoute au gain, resserre l'attaque, ajoute du sustain | 0 à +14 dB avant l'écrêtage + passe-haut d'entrée remonté (grave plus serré) |
 | TREBLE / MIDS / BASS | EQ actif 3 bandes, médium à 1 kHz | Plateau grave 100 Hz ±15 dB, cloche 1 kHz ±12 dB, plateau aigu 3 kHz ±15 dB ; midi = plat |
@@ -28,7 +28,7 @@ Usage personnel. Windows 11 et macOS (binaire universel).
 | Mode Laerm | Plus ouvert, plus direct, plus fort | Seuil d'écrêtage plus haut (type LED), bande passante plus large, ≈ +4 dB |
 | Footswitch BYPASS | Relais « Smart Relay » | Clic = on / off ; **appui maintenu** (> 0,45 s) quand l'effet était coupé = fonctionnement momentané (désactivable, clic droit > Settings) |
 | Footswitch BOOST | Boost on / off | Même comportement que BYPASS |
-| LED | Une seule LED entre les footswitchs | Rouge = effet actif, ambre = boost engagé ; la façade s'éclaire autour |
+| LED | Une seule LED entre les footswitchs | Rouge = effet actif ; la façade s'éclaire autour. Boost engagé : le potard BOOST transparent s'éclaire de l'intérieur et son curseur devient visible |
 
 Sources : fiche Lichtlaerm Audio (lichtlaermaudio.com/shop/thorn), test Guitar Pedal X, Effects Database,
 manuel Providence SDT-2, tests MusicRadar / Vintage Guitar de la Stampede DT, Premier Guitar (Rig Rundown Amenra,
@@ -73,7 +73,7 @@ Tous les paramètres sont aussi automatisables dans le DAW.
 
 - `DoornDSP.h` : moteur audio (sans JUCE, testé par `tests/test_dsp.cpp`).
 - `PluginProcessor.*`, `PluginEditor.*` : plugin JUCE 8.0.4.
-- `background.jpg`, `toggle_strip.png`, `glow_red.png`, `glow_amber.png`, `Fondamento-Regular.ttf` : visuel intégré.
+- `background.jpg`, `toggle_strip.png`, `glow_red.png`, `Fondamento-Regular.ttf` : visuel intégré.
 - `tools/make_background.py` (fond), `tools/switch_photo.py` (inverseurs), `tools/controls_art.py` (footswitch), `tools/render/` (captures de la vraie fenêtre sous Linux).
 - `design/` : visuel fourni, photo du circuit imprimé, photo des switchs.
 - Polices : Fondamento et Alegreya SC (SIL Open Font License, `assets/OFL_*.txt`).

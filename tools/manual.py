@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -58,12 +58,12 @@ x = 0
 for m in modes: mstrip.paste(m, (x, 0)); x += m.width + gap
 modes_img = os.path.join(TMP, "doorn_modes.png"); mstrip.save(modes_img)
 
-# LED : effet actif (rouge), boost engage (ambre), bypass (eteinte)
-leds = [crop_u(p, (300, 640, 465, 850)) for p in ("doorn_default.png", "doorn_boost.png", "doorn_bypass.png")]
-leds[0] = Image.open(os.path.join(SHOTS, "doorn_default.png")).convert("RGB")
-kd = leds[0].height / 958.0
-leds[0] = leds[0].crop(tuple(int(v * kd) for v in (300, 640, 465, 850))).resize(leds[1].size, Image.LANCZOS)
-lstrip = Image.new("RGB", (sum(m.width for m in leds) + gap * 2, leds[1].height), (255, 255, 255))
+# LED (effet actif / bypass) et potard BOOST transparent (eteint / eclaire quand le boost est enclenche)
+_m = LAY["mini"]; _l = LAY["led"]
+kb = (_m[0] - 82, _m[1] - 70, _m[0] + 82, _m[1] + 110)
+kl = (_l[0] - 82, _l[1] - 110, _l[0] + 82, _l[1] + 70)
+leds = [crop_u("doorn_bypass.png", kl), crop_u("doorn_boost.png", kl), crop_u("doorn_status.png", kb), crop_u("doorn_boost.png", kb)]
+lstrip = Image.new("RGB", (sum(m.width for m in leds) + gap * 3, leds[0].height), (255, 255, 255))
 x = 0
 for m in leds: lstrip.paste(m, (x, 0)); x += m.width + gap
 leds_img = os.path.join(TMP, "doorn_leds.png"); lstrip.save(leds_img)
@@ -174,14 +174,14 @@ T = {
  ov_t="3. Interface overview",
  ov_rows=[["#", "Control", "Role"],
    ["1", "GAIN", "Amount of distortion. Drag up / down, mouse wheel, double-click = noon."],
-   ["2", "BOOST (small knob)", "Level of the boost, from 0 to +14 dB. Only heard when the BOOST footswitch is on."],
+   ["2", "BOOST (small knob)", "Level of the boost, from 0 to +14 dB. Only heard when the BOOST footswitch is on: the transparent knob then lights up from inside and its cursor shows clearly."],
    ["3", "LEVEL", "Output volume."],
    ["4", "TREBLE", "Treble shelf, ±15 dB, flat at noon."],
    ["5", "MIDS", "Mid bell at 1 kHz, ±12 dB, flat at noon."],
    ["6", "BASS", "Bass shelf, ±15 dB, flat at noon."],
    ["7", "EQ switch", "Up = off (EQ lifted out of the circuit), down = on."],
    ["8", "Mode switch", "Up = SDT-2, centre = Laerm, down = SDT-1."],
-   ["9", "LED", "Red = effect on, amber = boost engaged, off = bypass. The panel around it is lit by the LED."],
+   ["9", "LED", "Red = effect on, off = bypass. The panel around it is lit by the LED."],
    ["10", "BOOST footswitch", "Boost on / off (hold = momentary)."],
    ["11", "BYPASS footswitch", "Effect on / off (hold = momentary)."],
    ["12", "Status line", "Setting of the knob or switch you just moved (knobs in %); appears when something moves."],
@@ -189,7 +189,7 @@ T = {
    ["14", "IN", "Input jack."],
    ["15", "OUT", "Output jack."]],
  ctl_t="4. Controls in detail",
- ctl=[("GAIN", "From about 6 dB to 54 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit."),
+ ctl=[("GAIN", "From about 10 dB to 66 dB of gain spread over two op-amp stages. Up to about noon the distortion is a hard, edgy crunch; past 1 o'clock it turns into the fuzz-like wall the Stampede is known for. As the gain rises, the op-amp bandwidth narrows slightly, which keeps the top end from turning into fizz, exactly like the real circuit."),
       ("BOOST", "As on the Thorn, the boost is <b>additive</b>: it is not a separate pedal in front, it adds its gain (0 to +14 dB, set with the small knob) to the GAIN and raises the input high-pass a little, so the attack gets tighter and the sustain longer. The small knob sets the amount; the BOOST footswitch turns it on and off."),
       ("LEVEL", "Audio taper: 0 = muted, noon about −15 dB, 3 o'clock about −7 dB, full = 0 dB. The three modes are levelled like on the pedal: SDT-2 slightly quieter, Laerm louder."),
       ("TREBLE · MIDS · BASS", "Active 3-band EQ after the distortion: bass shelf at 100 Hz (±15 dB), mid bell at <b>1 kHz</b> (±12 dB) for surgical presence shaping, treble shelf at 3 kHz (±15 dB). At noon each band is flat."),
@@ -198,11 +198,11 @@ T = {
  modes_cap="The mode switch on SDT-2 (lever up), Laerm (centre) and SDT-1 (lever down).",
  fs_t="5. Footswitches, LED and MIDI",
  fs=["<b>Footswitches</b>: same footswitch and behaviour as Echoflex. They switch as soon as you press them and the cap darkens while held. <b>Smart relay</b> (as on the Thorn): if you hold a footswitch for more than 0.45 s after turning something on, it works as a momentary switch and turns off when you release it. Right-click &gt; <b>Settings</b> to disable this.",
-     "<b>LED</b>: red when the effect is on, amber when the boost is engaged, off in bypass, with a fade-in / fade-out and the panel really lit around it.",
+     "<b>LED</b>: red when the effect is on, off in bypass, with a fade-in / fade-out and the panel really lit around it. <b>Boost</b>: when the boost is engaged, the transparent BOOST knob lights up from inside (warm light, the panel around it catches a little of it) and its cursor becomes clearly visible; boost off, the cursor stays dark under the smoked cap.",
      "<b>Bypass</b>: true bypass sound (the dry signal is passed through, time-aligned with the oversampling latency reported to the DAW).",
      "<b>Expression pedals</b>: every knob can be driven by a MIDI CC (table below). Movements are never stepped: Doorn measures the time between two messages from your pedal and ramps to each new value over that time; 14-bit pedals are supported, and the real travel of your pedal is learnt automatically, so a pedal that only sends 2 to 116 still reaches exactly 0 and 100 %.",
      "<b>MIDI footswitches</b>: latching (127 = on / 0 = off, default) or momentary (toggle on each press), right-click &gt; Settings. All parameters can also be automated and MIDI-learnt in the DAW."],
- led_cap="LED: effect on (red), boost engaged (amber), bypass (off).",
+ led_cap="LED in bypass and with the effect on; BOOST knob with the boost off and on (lit, cursor visible).",
  midi_hdr=["Message", "Function"],
  midi=[["CC 20 / 21 / 22", "Gain / Boost level / Level"], ["CC 23 / 24 / 25", "Treble / Mids / Bass"],
        ["CC 52 to 57", "Fine (14-bit) part of CC 20 to 25"], ["CC 26", "EQ (64 or more = on)"],
@@ -222,12 +222,13 @@ T = {
        "Put a noise gate after Doorn (for example NGATE from Studio Wiga) for tight stops at high gain."],
  tech_t="9. Specifications and version history",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Channels", "Mono or stereo"],
-       ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 6 to 54 dB, + 0 to 14 dB boost"],
+       ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 10 to 66 dB, + 0 to 14 dB boost"],
        ["EQ", "bass 100 Hz ±15 dB, mids 1 kHz ±12 dB, treble 3 kHz ±15 dB, bypassable"],
        ["Processing", "4x oversampling, smoothed parameters, no denormals"], ["CPU", "about 4 % of one core at 48 kHz (stereo)"]],
  hist=[["1.0.0", "First version: Thorn / Stampede SDT-1 model with SDT-1, SDT-2 and Laerm voicings, additive boost, bypassable 3-band EQ, smart relay footswitches, MIDI and expression pedals, 10 factory presets and 9 user presets, Echoflex single pedal format"],
        ["1.0.1", "Status line shows only the control you move; window anti-freeze completed (no redraw at rest: steady LED without flicker, no forced resize from the window)"],
-       ["1.1.0", "Tighter, more precise sound: higher input high-pass, low-mid cut before clipping, harder diode knee, cleaner first stage, less bias, SDT-2 less crushed, gain range 6 to 54 dB; bigger pedal in the same window; LED light on the panel without any visible square"]],
+       ["1.1.0", "Tighter, more precise sound: higher input high-pass, low-mid cut before clipping, harder diode knee, cleaner first stage, less bias, SDT-2 less crushed, gain range 6 to 54 dB; bigger pedal in the same window; LED light on the panel without any visible square"],
+       ["1.2.0", "More gain, like the original Thorn (10 to 66 dB, the precision of 1.1 is kept by the filters); the LED no longer turns amber with the boost: the transparent BOOST knob lights up from inside instead and its cursor becomes visible"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -242,14 +243,14 @@ T = {
  ov_t="3. Vue d'ensemble de l'interface",
  ov_rows=[["#", "Commande", "Rôle"],
    ["1", "GAIN", "Quantité de distorsion. Glisser vers le haut / le bas, molette, double-clic = midi."],
-   ["2", "BOOST (petit potard)", "Niveau du boost, de 0 à +14 dB. Ne s'entend que si le footswitch BOOST est enclenché."],
+   ["2", "BOOST (petit potard)", "Niveau du boost, de 0 à +14 dB. Ne s'entend que si le footswitch BOOST est enclenché : le potard transparent s'éclaire alors de l'intérieur et son curseur apparaît nettement."],
    ["3", "LEVEL", "Volume de sortie."],
    ["4", "TREBLE", "Plateau d'aigus, ±15 dB, plat à midi."],
    ["5", "MIDS", "Cloche de médiums à 1 kHz, ±12 dB, plate à midi."],
    ["6", "BASS", "Plateau de graves, ±15 dB, plat à midi."],
    ["7", "Inverseur EQ", "En haut = off (EQ retiré du circuit), en bas = on."],
    ["8", "Inverseur de mode", "En haut = SDT-2, au centre = Laerm, en bas = SDT-1."],
-   ["9", "LED", "Rouge = effet actif, ambre = boost enclenché, éteinte = bypass. La façade autour est éclairée par la LED."],
+   ["9", "LED", "Rouge = effet actif, éteinte = bypass. La façade autour est éclairée par la LED."],
    ["10", "Footswitch BOOST", "Boost on / off (appui maintenu = momentané)."],
    ["11", "Footswitch BYPASS", "Effet on / off (appui maintenu = momentané)."],
    ["12", "Ligne d'état", "Réglage du potard ou de l'inverseur que vous venez de bouger (potards en %) ; apparaît quand un réglage bouge."],
@@ -257,7 +258,7 @@ T = {
    ["14", "IN", "Jack d'entrée."],
    ["15", "OUT", "Jack de sortie."]],
  ctl_t="4. Les commandes en détail",
- ctl=[("GAIN", "D'environ 6 dB à 54 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit."),
+ ctl=[("GAIN", "D'environ 10 dB à 66 dB de gain, répartis sur deux étages d'ampli op. Jusqu'à midi environ, c'est un crunch dur et mordant ; au-delà de 13 h, cela devient le mur façon fuzz qui a fait la réputation de la Stampede. Quand le gain monte, la bande passante de l'ampli op se resserre un peu, ce qui évite que les aigus ne grésillent, exactement comme sur le vrai circuit."),
       ("BOOST", "Comme sur la Thorn, le boost est <b>additif</b> : ce n'est pas une pédale séparée placée devant, il ajoute son gain (0 à +14 dB, réglé avec le petit potard) au GAIN et remonte un peu le passe-haut d'entrée : l'attaque se resserre et le sustain s'allonge. Le petit potard règle la quantité ; le footswitch BOOST l'enclenche et le coupe."),
       ("LEVEL", "Courbe audio : 0 = coupé, midi environ −15 dB, 15 h environ −7 dB, à fond = 0 dB. Les trois modes sont équilibrés comme sur la pédale : SDT-2 un peu moins fort, Laerm plus fort."),
       ("TREBLE · MIDS · BASS", "EQ actif 3 bandes après la distorsion : plateau de graves à 100 Hz (±15 dB), cloche de médiums à <b>1 kHz</b> (±12 dB) pour sculpter précisément la présence, plateau d'aigus à 3 kHz (±15 dB). À midi, chaque bande est plate."),
@@ -266,11 +267,11 @@ T = {
  modes_cap="L'inverseur de mode sur SDT-2 (levier en haut), Laerm (au centre) et SDT-1 (levier en bas).",
  fs_t="5. Footswitchs, LED et MIDI",
  fs=["<b>Footswitchs</b> : même footswitch et même fonctionnement qu'Echoflex. Ils basculent dès l'appui et le bouton s'assombrit tant qu'on appuie. <b>Smart relay</b> (comme sur la Thorn) : si vous maintenez un footswitch plus de 0,45 s après avoir enclenché quelque chose, il fonctionne en momentané et se coupe quand vous relâchez. Clic droit &gt; <b>Settings</b> pour désactiver ce comportement.",
-     "<b>LED</b> : rouge quand l'effet est actif, ambre quand le boost est enclenché, éteinte en bypass, avec allumage / extinction en fondu et la façade réellement éclairée autour.",
+     "<b>LED</b> : rouge quand l'effet est actif, éteinte en bypass, avec allumage / extinction en fondu et la façade réellement éclairée autour. <b>Boost</b> : quand le boost est enclenché, le potard BOOST transparent s'éclaire de l'intérieur (lumière chaude, la façade autour en reçoit un peu) et son curseur devient bien visible ; boost coupé, le curseur reste sombre sous le chapeau fumé.",
      "<b>Bypass</b> : son direct (le signal sec passe, aligné dans le temps sur la latence du sur-échantillonnage annoncée au DAW).",
      "<b>Pédales d'expression</b> : chaque potard peut être piloté par un CC MIDI (tableau ci-dessous). Les mouvements ne sont jamais saccadés : Doorn mesure le temps entre deux messages de votre pédale et rejoint chaque nouvelle valeur par une rampe pendant ce temps ; les pédales 14 bits sont prises en charge et la course réelle de votre pédale est apprise automatiquement : une pédale qui n'envoie que 2 à 116 atteint quand même exactement 0 et 100 %.",
      "<b>Footswitchs MIDI</b> : à accrochage (127 = on / 0 = off, par défaut) ou momentanés (bascule à chaque appui), clic droit &gt; Settings. Tous les paramètres sont aussi automatisables et assignables en MIDI learn dans le DAW."],
- led_cap="LED : effet actif (rouge), boost enclenché (ambre), bypass (éteinte).",
+ led_cap="LED en bypass et effet actif ; potard BOOST boost coupé et enclenché (éclairé, curseur visible).",
  midi_hdr=["Message", "Fonction"],
  midi=[["CC 20 / 21 / 22", "Gain / niveau du Boost / Level"], ["CC 23 / 24 / 25", "Treble / Mids / Bass"],
        ["CC 52 à 57", "Partie fine (14 bits) des CC 20 à 25"], ["CC 26", "EQ (64 ou plus = on)"],
@@ -290,12 +291,13 @@ T = {
        "Placez un noise gate après Doorn (par exemple NGATE de Studio Wiga) pour des arrêts nets à fort gain."],
  tech_t="9. Caractéristiques techniques et historique des versions",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Canaux", "Mono ou stéréo"],
-       ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 6 à 54 dB, + 0 à 14 dB de boost"],
+       ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 10 à 66 dB, + 0 à 14 dB de boost"],
        ["EQ", "graves 100 Hz ±15 dB, médiums 1 kHz ±12 dB, aigus 3 kHz ±15 dB, bypassable"],
        ["Traitement", "sur-échantillonnage x4, paramètres lissés, pas de dénormaux"], ["Processeur", "environ 4 % d'un cœur à 48 kHz (stéréo)"]],
  hist=[["1.0.0", "Première version : modèle Thorn / Stampede SDT-1 avec les voix SDT-1, SDT-2 et Laerm, boost additif, EQ 3 bandes bypassable, footswitchs smart relay, MIDI et pédales d'expression, 10 presets usine et 9 presets utilisateur, format pédale simple d'Echoflex"],
        ["1.0.1", "La ligne d'état n'affiche que la commande que l'on bouge ; anti-gel de la fenêtre complété (aucun redessin au repos : LED fixe sans scintillement, plus de redimensionnement forcé par la fenêtre)"],
-       ["1.1.0", "Son plus serré et plus précis : passe-haut d'entrée plus haut, creux bas-médium avant l'écrêtage, coude des diodes plus dur, premier étage plus propre, moins de biais, SDT-2 moins écrasée, gain de 6 à 54 dB ; pédale agrandie dans la même fenêtre ; lumière de la LED sur la façade sans carré visible"]],
+       ["1.1.0", "Son plus serré et plus précis : passe-haut d'entrée plus haut, creux bas-médium avant l'écrêtage, coude des diodes plus dur, premier étage plus propre, moins de biais, SDT-2 moins écrasée, gain de 6 à 54 dB ; pédale agrandie dans la même fenêtre ; lumière de la LED sur la façade sans carré visible"],
+       ["1.2.0", "Plus de gain, comme la Thorn d'origine (10 à 66 dB, la précision de la 1.1 est conservée par les filtres) ; la LED ne passe plus à l'ambre avec le boost : c'est le potard BOOST transparent qui s'éclaire de l'intérieur et son curseur devient visible"]],
  ver_h=["Version", "Changements"]),
 }
 
@@ -329,7 +331,7 @@ def section(lang):
     for h, x in t["ctl"]: f.append(P(h, "h2")); f.append(P(x))
     f.append(KeepTogether([Spacer(1, 3 * mm), img(modes_img, W * 0.62), P(t["modes_cap"], "small")]))
     f.append(P(t["fs_t"], "h1")); f += bullets(t["fs"])
-    f.append(KeepTogether([Spacer(1, 2 * mm), img(leds_img, W * 0.52), P(t["led_cap"], "small")]))
+    f.append(KeepTogether([Spacer(1, 2 * mm), img(leds_img, W * 0.72), P(t["led_cap"], "small")]))
     f.append(Spacer(1, 3 * mm))
     f.append(KeepTogether([table([t["midi_hdr"]] + t["midi"], [42 * mm, W - 42 * mm])]))
     f.append(P(t["win_t"], "h1")); f += [P(x) for x in t["win"]]

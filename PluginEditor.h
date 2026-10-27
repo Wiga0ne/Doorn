@@ -19,6 +19,7 @@ class DoornKnob : public juce::Slider
 public:
     DoornKnob() = default;
     bool isMini = false;
+    float lit = 0.0f;                    // potard BOOST : lumiere interieure (boost enclenche)
     bool hitTest (int x, int y) override;
 };
 
@@ -120,7 +121,7 @@ private:
     DoornKnobLookAndFeel lnf;
     RightClickForwarder rightClickFwd;
 
-    juce::Image background, bgScaled, glowRed, glowAmber, glowRedS, glowAmberS;
+    juce::Image background, bgScaled, glowRed, glowRedS;
     int cacheW = 0, cacheH = 0;
     float cacheScale = 0.0f;
     int resizeSettle = 0;
@@ -132,9 +133,9 @@ private:
     FootSwitchArea boostFs, bypassFs;
 
     // animation
-    float ledLevel = 0.0f, ledAmber = 0.0f;
+    float ledLevel = 0.0f, boostLit = 0.0f;
     int lastChanged = -1;               // commande affichee dans la ligne d'etat
-    float drawnLed = -1.0f, drawnAmber = -1.0f;
+    float drawnLed = -1.0f;
     float statusAlpha = 0.0f, drawnStatus = -1.0f;
     double statusUntil = 0.0;
     juce::String lastLine1, lastPreset;

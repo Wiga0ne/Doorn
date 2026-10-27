@@ -25,7 +25,6 @@ namespace
     const float rotEnd   = MathConstants<float>::pi * (17.0f / 6.0f);   // +150 degres
 
     const Colour redCore (0xffffd6c8), redMid (0xffff2616), redDeep (0xff8c0504);
-    const Colour ambCore (0xfffff0c8), ambMid (0xffffa028), ambDeep (0xffbe5000);
     const Colour inkWhite (0xffececec);
 
     const char* const valueIds[] = { "gain", "boost", "level", "treble", "mids", "bass", "eq", "mode", "boostOn", "active" };
@@ -69,14 +68,30 @@ void DoornKnobLookAndFeel::drawRotarySlider (Graphics& g, int x, int y, int w, i
     }
     else
     {
-        // barrette blanche sous le chapeau fume du petit potard BOOST
-        const float r0 = 0.40f * R, r1 = 0.954f * R, bw = 0.287f * R;
+        // petit potard BOOST transparent (fume) : eclaire de l'interieur quand le boost est enclenche,
+        // le curseur (barrette) apparait alors nettement ; boost coupe = curseur sombre a peine visible
+        const float lit = k != nullptr ? k->lit : 0.0f;
+        const Colour warm (0xffffd9a0);
+        if (lit > 0.001f)
+        {
+            ColourGradient glow (warm.withAlpha (0.78f * lit), c.x, c.y, warm.withAlpha (0.0f), c.x + R * 0.98f, c.y, true);
+            glow.addColour (0.55, warm.withAlpha (0.42f * lit));
+            g.setGradientFill (glow);
+            g.fillEllipse (c.x - R * 0.98f, c.y - R * 0.98f, R * 1.96f, R * 1.96f);
+        }
+        const float r0 = 0.22f * R, r1 = 0.88f * R, bw = 0.20f * R;
         const Point<float> p0 = c + Point<float> (std::sin (a), -std::cos (a)) * r0;
         const Point<float> p1 = c + Point<float> (std::sin (a), -std::cos (a)) * r1;
-        g.setColour (Colours::black.withAlpha (0.25f));
-        g.drawLine ({ p0.translated (0.6f, 0.8f), p1.translated (0.6f, 0.8f) }, bw);
-        g.setColour (Colour (0xffe1e4e2).withAlpha (0.90f));
         Path bar; bar.addLineSegment ({ p0, p1 }, bw);
+        // eteint : barrette grise dans l'ombre du dome fume ; allume : blanche, avec un leger halo de diffusion
+        if (lit > 0.001f)
+        {
+            g.setColour (Colours::white.withAlpha (0.30f * lit));
+            g.strokePath (bar, PathStrokeType (bw * 2.2f, PathStrokeType::curved, PathStrokeType::rounded));
+        }
+        g.setColour (Colours::black.withAlpha (0.25f * (1.0f - lit)));
+        g.drawLine ({ p0.translated (0.6f, 0.8f), p1.translated (0.6f, 0.8f) }, bw);
+        g.setColour (Colour (0xff6d7376).interpolatedWith (Colours::white, lit).withAlpha (0.80f + 0.20f * lit));
         g.strokePath (bar, PathStrokeType (bw, PathStrokeType::curved, PathStrokeType::rounded));
         // reflet du dome par-dessus (fixe)
         ColourGradient sh (Colours::white.withAlpha (0.18f), c.x - R * 0.35f, c.y - R * 0.55f,
@@ -220,7 +235,6 @@ DoornAudioProcessorEditor::DoornAudioProcessorEditor (DoornAudioProcessor& p)
 {
     background = ImageCache::getFromMemory (BinaryData::background_jpg, BinaryData::background_jpgSize);
     glowRed    = ImageCache::getFromMemory (BinaryData::glow_red_png,   BinaryData::glow_red_pngSize);
-    glowAmber  = ImageCache::getFromMemory (BinaryData::glow_amber_png, BinaryData::glow_amber_pngSize);
     const auto strip = ImageCache::getFromMemory (BinaryData::toggle_strip_png, BinaryData::toggle_strip_pngSize);
     labelFace = Typeface::createSystemTypefaceFor (BinaryData::FondamentoRegular_ttf, BinaryData::FondamentoRegular_ttfSize);
 
@@ -261,7 +275,8 @@ DoornAudioProcessorEditor::DoornAudioProcessorEditor (DoornAudioProcessor& p)
     lastPresetCounter = proc.presetCounter.load();
     lastMidiCount = proc.midiCounter.load();
     ledLevel = proc.raw ("active") > 0.5f ? 1.0f : 0.0f;
-    ledAmber = proc.raw ("boostOn") > 0.5f ? 1.0f : 0.0f;
+    boostLit = proc.raw ("boostOn") > 0.5f ? 1.0f : 0.0f;
+    knobs[1].lit = boostLit;
 
     // Taille par defaut = taille minimale (impossible de reduire en dessous), proportions bloquees
     const int defaultW = roundToInt ((float) defaultH * (float) baseW / (float) baseH);
@@ -324,7 +339,6 @@ void DoornAudioProcessorEditor::rebuildCaches (float sc)
     const float s = (float) h / (float) baseH;
     const int gpx = roundToInt (glowRect.getWidth() * s * sc);
     glowRedS   = (gpx >= glowRed.getWidth())   ? glowRed   : glowRed.rescaled   (gpx, gpx, Graphics::highResamplingQuality);
-    glowAmberS = (gpx >= glowAmber.getWidth()) ? glowAmber : glowAmber.rescaled (gpx, gpx, Graphics::highResamplingQuality);
 
     repaint();
 }
@@ -434,14 +448,21 @@ void DoornAudioProcessorEditor::timerCallback()
     ledLevel += ((on ? 1.0f : 0.0f) - ledLevel) * (on ? 0.45f : 0.28f);
     if (ledLevel < 0.003f) ledLevel = 0.0f;
     if (ledLevel > 0.997f) ledLevel = 1.0f;
-    const float amberT = proc.raw ("boostOn") > 0.5f ? 1.0f : 0.0f;
-    ledAmber += (amberT - ledAmber) * 0.40f;
-    if (std::abs (ledAmber - amberT) < 0.003f) ledAmber = amberT;
+    // lumiere du potard BOOST : fondu (0,45 a l'allumage / 0,28 a l'extinction, comme les LED)
+    const float boostT = proc.raw ("boostOn") > 0.5f ? 1.0f : 0.0f;
+    boostLit += (boostT - boostLit) * (boostT > boostLit ? 0.45f : 0.28f);
+    if (std::abs (boostLit - boostT) < 0.003f) boostLit = boostT;
+    if (std::abs (boostLit - knobs[1].lit) > 0.003f || (boostLit == boostT && knobs[1].lit != boostT))
+    {
+        knobs[1].lit = boostLit;
+        knobs[1].repaint();
+        repaint (scaled (Rectangle<float> (knobPos[1].x - miniR * 2.2f, knobPos[1].y - miniR * 2.2f, miniR * 4.4f, miniR * 4.4f)));
+    }
 
     const float ledNow = ledLevel;        // pas de scintillement : au repos, aucun redessin (anti-gel)
-    if (std::abs (ledNow - drawnLed) > 0.004f || std::abs (ledAmber - drawnAmber) > 0.004f)
+    if (std::abs (ledNow - drawnLed) > 0.004f)
     {
-        drawnLed = ledNow; drawnAmber = ledAmber;
+        drawnLed = ledNow;
         repaint (scaled (glowRect));
     }
 
@@ -468,20 +489,14 @@ void DoornAudioProcessorEditor::drawLed (Graphics& g)
 
     // la facade recoit la lumiere de la LED (calques precalcules : fond x eclairement x couleur)
     const auto gr = glowRect;
-    if (glowRedS.isValid() && ledAmber < 0.999f)
+    if (glowRedS.isValid())
     {
-        g.setOpacity (level * (1.0f - ledAmber));
+        g.setOpacity (level);
         g.drawImage (glowRedS, gr);
-    }
-    if (glowAmberS.isValid() && ledAmber > 0.001f)
-    {
-        g.setOpacity (level * ledAmber);
-        g.drawImage (glowAmberS, gr);
     }
     g.setOpacity (1.0f);
 
-    auto mix = [this] (Colour r, Colour a) { return r.interpolatedWith (a, ledAmber); };
-    const Colour core = mix (redCore, ambCore), mid = mix (redMid, ambMid), deep = mix (redDeep, ambDeep);
+    const Colour core = redCore, mid = redMid, deep = redDeep;
     const auto c = ledPos; const float r = ledR;
 
     // halo optique tres faible autour de la lentille
@@ -562,6 +577,16 @@ void DoornAudioProcessorEditor::paint (Graphics& g)
     const float s = (float) getHeight() / (float) baseH;
     g.addTransform (AffineTransform::scale (s));
     drawLed (g);
+    if (boostLit > 0.001f)
+    {
+        // la lumiere du potard transparent eclaire un peu la facade autour
+        const auto c = knobPos[1];
+        const Colour warm (0xffffcf8a);
+        ColourGradient h (warm.withAlpha (0.34f * boostLit), c.x, c.y, warm.withAlpha (0.0f), c.x + miniR * 2.1f, c.y, true);
+        h.addColour (0.45, warm.withAlpha (0.10f * boostLit));
+        g.setGradientFill (h);
+        g.fillEllipse (c.x - miniR * 2.1f, c.y - miniR * 2.1f, miniR * 4.2f, miniR * 4.2f);
+    }
     drawStatus (g);
     drawPresetBar (g);
 }
