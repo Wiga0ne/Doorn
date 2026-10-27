@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cstring>
 
+// v2.2 : presence dans le bas rendue (grave +3 dB, bas-mediums 220 / 320 Hz remontes) en gardant les mediums / mediums-aigus.
 // v2.1 : moins sourd, voix stoner medium / medium-aigu : creux des mediums remplace par une poussee 900 Hz / 2 kHz,
 // couche fuzz plus ouverte, aigus +2 dB, bas-mediums allieges.
 // v2.0 : grain et gras stoner : couche fuzz parallele (facon Big Muff, asymetrique) + bosse de corps vers 220 Hz apres ecretage.
@@ -42,13 +43,13 @@
  #define DOORN_SCOOP_HZ 420.0
 #endif
 #ifndef DOORN_SCOOP_DB
- #define DOORN_SCOOP_DB -4.0
+ #define DOORN_SCOOP_DB -1.5
 #endif
 #ifndef DOORN_SCOOP_Q
  #define DOORN_SCOOP_Q 0.80
 #endif
 #ifndef DOORN_LOW_DB
- #define DOORN_LOW_DB -2.5
+ #define DOORN_LOW_DB -1.0
 #endif
 #ifndef DOORN_HIGH_DB
  #define DOORN_HIGH_DB 3.5
@@ -60,7 +61,7 @@
  #define DOORN_HP_MUL 1.8f
 #endif
 #ifndef DOORN_POSTBASS
- #define DOORN_POSTBASS 4.0
+ #define DOORN_POSTBASS 7.0
 #endif
 #ifndef DOORN_BITE_DB
  #define DOORN_BITE_DB 5.0
@@ -72,7 +73,7 @@
  #define DOORN_MUD_DB -3.0
 #endif
 #ifndef DOORN_LOWMID_DB
- #define DOORN_LOWMID_DB 1.5
+ #define DOORN_LOWMID_DB 4.5
 #endif
 #ifndef DOORN_LOWMID_HZ
  #define DOORN_LOWMID_HZ 320.0
@@ -81,7 +82,7 @@
  #define DOORN_FUZZ_MIX 0.30f
 #endif
 #ifndef DOORN_FAT_DB
- #define DOORN_FAT_DB 2.0
+ #define DOORN_FAT_DB 4.0
 #endif
 #ifndef DOORN_FAT_HZ
  #define DOORN_FAT_HZ 220.0
@@ -343,8 +344,8 @@ namespace doorn
             outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
             outPres.peak (sr, 2900.0, 0.9, v.presenceDb);
             // v2.1 voix stoner « medium / medium-aigu » (facon Orange / Sunn) : mediums en avant au lieu d'etre creuses
-            outMidPush.peak (sr, 900.0, 0.8, 5.0);
-            outHiMid.peak (sr, 2300.0, 0.9, 4.5);
+            outMidPush.peak (sr, 900.0, 0.8, 4.0);
+            outHiMid.peak (sr, 2300.0, 0.9, 5.5);
             boostPres.peak (sr, 1600.0, 0.7, 4.5 * boostMix);   // v1.9 boost : mediums-aigus en avant (le son passe devant)
             preBite.peak (sr, 1800.0, 0.8, DOORN_BITE_DB);     // attaque / mordant avant l'ecretage
             // v1.9 : BASS = plateau 90 Hz + bosse de presence / punch vers 120 Hz (attaque du grave), apres l'ecretage :
@@ -528,7 +529,7 @@ namespace doorn
             }
         }
 
-        float outTrim = 1.5f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = -5.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
