@@ -29,6 +29,7 @@
 #include <cstring>
 
 // v2.4 : TREBLE peut monter beaucoup plus (+21 dB et brillance 4,5 kHz).
+// v2.6 : noise gate integre (Off / Light / Medium / Strong) : plus de souffle ni de ronflement quand on ne joue pas.
 // v2.5 : BASS jusqu'a +18 dB, courses BASS / TREBLE progressives et continues (pas de cassure a midi).
 // v2.3 : plus fuzz, moins distorsion (fuzz 62 %, diodes 60 %, fuzz plus poussee).
 // v2.2 : presence dans le bas rendue (grave +3 dB, bas-mediums 220 / 320 Hz remontes) en gardant les mediums / mediums-aigus.
@@ -274,6 +275,7 @@ namespace doorn
         float treble = 10.0f, mids = 3.75f, bass = 7.5f;   // 0..10 (5 = plat)
         bool  eq = true, boostOn = false, active = true;
         int   mode = modeSDT1;
+        int   gate = 2;      // v2.6 noise gate integre : 0 = off, 1 = leger, 2 = moyen, 3 = fort
     };
 
     struct ModeVoice
@@ -459,6 +461,13 @@ namespace doorn
             sMode.setTime (sr, 6.0);
             first = true;
             counter = 0;
+            // noise gate : detection sur l'entree (sans le grave du ronflement secteur), avance sur le trajet traite
+            gateDetHP.highpass (sr, 110.0, 0.707);
+            gateEnv = 0.0f; gateGain = 1.0f; gateOpen = true; gateHold = 0;
+            gateRelEnv = (float) std::exp (-1.0 / (0.030 * sr));    // detection : retombee 30 ms
+            gateAtt    = (float) (1.0 - std::exp (-1.0 / (0.0008 * sr)));  // ouverture 0,8 ms
+            gateRel    = (float) (1.0 - std::exp (-1.0 / (0.120 * sr)));   // fermeture 120 ms (queue naturelle)
+            gateHoldLen = (int) (0.060 * sr);                                // maintien 60 ms
             std::memset (dryLine, 0, sizeof (dryLine));
             dryPos = 0;
             dryDelay = latencyInt();
@@ -528,10 +537,28 @@ namespace doorn
                 // v1.9 boost : +0 a +4 dB de niveau en plus (comme un vrai boost devant un etage deja sature)
                 const float out = dbToGain (levelDb (lv) + mk + outTrim + 4.0f * bon * clampf (bo / 10.0f, 0.0f, 1.0f)) * sMode.s2;
 
+                // v2.6 noise gate : la detection voit l'entree 32 echantillons avant la sortie traitee
+                // (latence du sur-echantillonnage) : l'attaque des notes n'est jamais mangee
+                float gg = 1.0f;
+                if (p.gate > 0)
+                {
+                    const float mono = nCh > 1 ? 0.5f * (io[0][i] + io[1][i]) : io[0][i];
+                    const float d = std::abs ((float) gateDetHP.process (mono));
+                    gateEnv = std::max (d, gateEnv * gateRelEnv);
+                    static const float openDb[4] = { -200.0f, -72.0f, -64.0f, -54.0f };
+                    const float thrOpen = dbToGain (openDb[std::min (3, p.gate)]), thrClose = thrOpen * 0.5f;   // hysteresis 6 dB
+                    if (gateEnv > thrOpen)       { gateOpen = true; gateHold = gateHoldLen; }
+                    else if (gateEnv < thrClose) { if (gateHold > 0) --gateHold; else gateOpen = false; }
+                    const float tg = gateOpen ? 1.0f : 0.0f;
+                    gateGain += (tg - gateGain) * (tg > gateGain ? gateAtt : gateRel);
+                    gg = gateGain * gateGain;      // fermeture progressive en courbe (pas de coupure seche)
+                }
+                else { gateGain = 1.0f; gateOpen = true; }
+
                 for (int c = 0; c < nCh; ++c)
                 {
                     const float x = io[c][i];
-                    const float wet = ch[c].process (x, cv, g1, g2, eqm) * out;
+                    const float wet = ch[c].process (x, cv, g1, g2, eqm) * out * gg;
                     // signal direct retarde de la latence du sur-echantillonnage (bypass aligne, compensation du DAW)
                     float* dl = dryLine[c];
                     dl[dryPos] = x;
@@ -545,6 +572,10 @@ namespace doorn
             }
         }
 
+        float gateEnv = 0.0f, gateGain = 1.0f, gateRelEnv = 0.999f, gateAtt = 0.03f, gateRel = 0.0002f;
+        bool  gateOpen = true; int gateHold = 0, gateHoldLen = 2880;
+        Biquad gateDetHP;
+    public:
         float outTrim = -5.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 

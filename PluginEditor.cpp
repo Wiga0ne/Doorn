@@ -27,8 +27,8 @@ namespace
     const Colour redCore (0xffffd6c8), redMid (0xffff2616), redDeep (0xff8c0504);
     const Colour inkWhite (0xffececec);
 
-    const char* const valueIds[] = { "gain", "boost", "level", "treble", "mids", "bass", "eq", "mode", "boostOn", "active" };
-    constexpr int numValueIds = 10;
+    const char* const valueIds[] = { "gain", "boost", "level", "treble", "mids", "bass", "eq", "mode", "boostOn", "active", "gate" };
+    constexpr int numValueIds = 11;
 }
 
 //==============================================================================
@@ -413,6 +413,7 @@ String DoornAudioProcessorEditor::buildStatusLine() const
     if (id == "eq")      return v > 0.5f ? "eq on" : "eq off";
     if (id == "mode")    return DoornAudioProcessor::modeNames()[jlimit (0, 2, roundToInt (v))].toLowerCase();
     if (id == "boostOn") return v > 0.5f ? "boost on" : "boost off";
+    if (id == "gate")    return "noise gate " + DoornAudioProcessor::gateNames()[jlimit (0, 3, roundToInt (v))].toLowerCase();
     return v > 0.5f ? "effect on" : "bypass";
 }
 
@@ -721,6 +722,12 @@ void DoornAudioProcessorEditor::showContextMenu()
     menu.addSubMenu ("Save user preset", save);
     menu.addSeparator();
 
+    PopupMenu gate;
+    const int gNow = jlimit (0, 3, roundToInt (proc.raw ("gate")));
+    const char* gateHelp[4] = { "Off", "Light (very quiet setup)", "Medium (default)", "Strong (noisy pickups / hum)" };
+    for (int i = 0; i < 4; ++i) gate.addItem (50 + i, gateHelp[i], true, gNow == i);
+    menu.addSubMenu ("Noise gate", gate);
+
     PopupMenu settings;
     settings.addItem (40, "Smart relay: hold footswitch = momentary", true, proc.raw ("holdMomentary") > 0.5f);
     settings.addSeparator();
@@ -757,6 +764,7 @@ void DoornAudioProcessorEditor::showContextMenu()
             else if (r == 40) pr.setParamValue ("holdMomentary", pr.raw ("holdMomentary") > 0.5f ? 0.0f : 1.0f);
             else if (r == 41) pr.setParamValue ("midiFsMode", 0.0f);
             else if (r == 42) pr.setParamValue ("midiFsMode", 1.0f);
+            else if (r >= 50 && r <= 53) pr.setParamValue ("gate", (float) (r - 50));
             else if (r >= 100 && r < 200) pr.applyFactoryPreset (r - 100);
             else if (r > 200 && r < 300)  pr.loadUserPreset (r - 200);
             else if (r > 300 && r < 400)  pr.saveUserPreset (r - 300);

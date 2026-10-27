@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "2.5.0"
+VERSION = "2.6.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -202,7 +202,8 @@ T = {
      "<b>LED</b>: red when the effect is on, off in bypass, with a fade-in / fade-out and the panel really lit around it. <b>Boost</b>: when the boost is engaged, the transparent BOOST knob lights up from inside (warm light, the panel around it catches a little of it) and its cursor becomes clearly visible; boost off, the cursor stays dark under the smoked cap.",
      "<b>Bypass</b>: true bypass sound (the dry signal is passed through, time-aligned with the oversampling latency reported to the DAW).",
      "<b>Expression pedals</b>: every knob can be driven by a MIDI CC (table below). Movements are never stepped: Doorn measures the time between two messages from your pedal and ramps to each new value over that time; 14-bit pedals are supported, and the real travel of your pedal is learnt automatically, so a pedal that only sends 2 to 116 still reaches exactly 0 and 100 %.",
-     "<b>MIDI footswitches</b>: latching (127 = on / 0 = off, default) or momentary (toggle on each press), right-click &gt; Settings. All parameters can also be automated and MIDI-learnt in the DAW."],
+     "<b>MIDI footswitches</b>: latching (127 = on / 0 = off, default) or momentary (toggle on each press), right-click &gt; Settings. All parameters can also be automated and MIDI-learnt in the DAW.",
+     "<b>Noise gate</b> (right-click &gt; Noise gate): silences hiss and hum as soon as you stop playing, opens instantly on the next note (no attack is ever cut) and lets notes fade smoothly. Off, Light, <b>Medium</b> (default) or Strong (noisy pickups). Acts on the effect only"],
  led_cap="LED in bypass and with the effect on; BOOST knob with the boost off and on (lit, cursor visible).",
  midi_hdr=["Message", "Function"],
  midi=[["CC 20 / 21 / 22", "Gain / Boost level / Level"], ["CC 23 / 24 / 25", "Treble / Mids / Bass"],
@@ -220,7 +221,7 @@ T = {
  tips=["In Reaper place Doorn <b>before</b> your amp simulator (for example before Two Notes Genome) with a fairly clean amp, as you would with the real pedal. With a crunch amp, lower the gain: the Stampede already has a lot.",
        "For low tunings (B standard like Amenra, or a 7-string in G and lower), keep BASS around noon to 1 o'clock and use the BOOST: it tightens the low end without losing weight.",
        "The original reviewer's favourite modes are SDT-1 and Laerm; SDT-2 is perfect for long, saturated chords.",
-       "Put a noise gate after Doorn (for example NGATE from Studio Wiga) for tight stops at high gain."],
+       "If some hiss remains when you stop playing, set right-click &gt; Noise gate to Strong; for very tight stops on staccato riffs, NGATE from Studio Wiga can still be added after Doorn."],
  tech_t="9. Specifications and version history",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Channels", "Mono or stereo"],
        ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 26 to 72 dB, + 0 to 20 dB boost"],
@@ -231,7 +232,8 @@ T = {
        ["1.5.0 - 1.9.0", "More gain and bite without the boost, tight low end (bass kept out of the clipping and given back after it), output that follows your picking, BASS with punch, clearly audible boost"],
        ["2.0.0 - 2.3.0", "Stoner grain and fat: parallel Big Muff-style fuzz layer that now leads the distortion (fuzz about 62 %), body bump around 220 Hz, stoner mid / high-mid voice (push around 900 Hz and 2.3 kHz, no longer muffled), low end and low-mids back with presence, headroom kept so nothing gets squashed"],
        ["2.4.0", "TREBLE goes much higher: up to +21 dB (instead of +15) with extra sparkle around 4.5 kHz; the cut side is unchanged"],
-       ["2.5.0", "BASS goes higher too (up to +18 dB); BASS and TREBLE travel is smooth and natural, no sudden change at noon; stronger anti-freeze for the window (no heavy work while drawing, watchdog, no host call from the audio thread), JUCE 8.0.15"]],
+       ["2.5.0", "BASS goes higher too (up to +18 dB); BASS and TREBLE travel is smooth and natural, no sudden change at noon; stronger anti-freeze for the window (no heavy work while drawing, watchdog, no host call from the audio thread), JUCE 8.0.15"],
+       ["2.6.0", "Built-in noise gate (right-click &gt; Noise gate: Off / Light / Medium / Strong, Medium by default): no more hiss or hum when you stop playing, attacks never cut, notes fade naturally"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -273,7 +275,8 @@ T = {
      "<b>LED</b> : rouge quand l'effet est actif, éteinte en bypass, avec allumage / extinction en fondu et la façade réellement éclairée autour. <b>Boost</b> : quand le boost est enclenché, le potard BOOST transparent s'éclaire de l'intérieur (lumière chaude, la façade autour en reçoit un peu) et son curseur devient bien visible ; boost coupé, le curseur reste sombre sous le chapeau fumé.",
      "<b>Bypass</b> : son direct (le signal sec passe, aligné dans le temps sur la latence du sur-échantillonnage annoncée au DAW).",
      "<b>Pédales d'expression</b> : chaque potard peut être piloté par un CC MIDI (tableau ci-dessous). Les mouvements ne sont jamais saccadés : Doorn mesure le temps entre deux messages de votre pédale et rejoint chaque nouvelle valeur par une rampe pendant ce temps ; les pédales 14 bits sont prises en charge et la course réelle de votre pédale est apprise automatiquement : une pédale qui n'envoie que 2 à 116 atteint quand même exactement 0 et 100 %.",
-     "<b>Footswitchs MIDI</b> : à accrochage (127 = on / 0 = off, par défaut) ou momentanés (bascule à chaque appui), clic droit &gt; Settings. Tous les paramètres sont aussi automatisables et assignables en MIDI learn dans le DAW."],
+     "<b>Footswitchs MIDI</b> : à accrochage (127 = on / 0 = off, par défaut) ou momentanés (bascule à chaque appui), clic droit &gt; Settings. Tous les paramètres sont aussi automatisables et assignables en MIDI learn dans le DAW.",
+     "<b>Noise gate</b> (clic droit &gt; Noise gate) : coupe le souffle et le ronflement dès qu'on arrête de jouer, s'ouvre instantanément à la note suivante (aucune attaque coupée), laisse les notes s'éteindre en douceur. Off, Light, <b>Medium</b> (par défaut) ou Strong (micros bruyants). N'agit que sur l'effet"],
  led_cap="LED en bypass et effet actif ; potard BOOST boost coupé et enclenché (éclairé, curseur visible).",
  midi_hdr=["Message", "Fonction"],
  midi=[["CC 20 / 21 / 22", "Gain / niveau du Boost / Level"], ["CC 23 / 24 / 25", "Treble / Mids / Bass"],
@@ -291,7 +294,7 @@ T = {
  tips=["Dans Reaper, placez Doorn <b>avant</b> votre simulateur d'ampli (par exemple avant Two Notes Genome) avec un ampli assez clair, comme avec la vraie pédale. Avec un ampli crunch, baissez le gain : la Stampede en a déjà beaucoup.",
        "Pour les accordages bas (Si standard comme Amenra, ou une 7 cordes en Sol et plus bas), gardez BASS entre midi et 13 h et servez-vous du BOOST : il resserre le grave sans perdre de poids.",
        "Les modes préférés du testeur d'origine sont SDT-1 et Laerm ; SDT-2 est parfait pour les longs accords saturés.",
-       "Placez un noise gate après Doorn (par exemple NGATE de Studio Wiga) pour des arrêts nets à fort gain."],
+       "S'il reste du souffle quand vous arrêtez de jouer, passez clic droit &gt; Noise gate sur Strong ; pour des arrêts très secs sur les riffs saccadés, NGATE de Studio Wiga peut toujours être ajouté après Doorn."],
  tech_t="9. Caractéristiques techniques et historique des versions",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Canaux", "Mono ou stéréo"],
        ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 26 à 72 dB, + 0 à 20 dB de boost"],
@@ -302,7 +305,8 @@ T = {
        ["1.5.0 - 1.9.0", "Plus de gain et de mordant sans boost, grave serré (tenu à l'écart de l'écrêtage puis rendu après), sortie qui suit le jeu, BASS avec du punch, boost bien audible"],
        ["2.0.0 - 2.3.0", "Grain et gras stoner : couche fuzz en parallèle façon Big Muff qui passe devant la distorsion (fuzz environ 62 %), bosse de corps vers 220 Hz, voix stoner médium / médium-aigu (poussée vers 900 Hz et 2,3 kHz, fini le son sourd), grave et bas-médiums de retour avec de la présence, marge gardée pour ne rien écraser"],
        ["2.4.0", "TREBLE monte beaucoup plus : jusqu'à +21 dB (au lieu de +15) avec de la brillance en plus vers 4,5 kHz ; la coupe ne change pas"],
-       ["2.5.0", "BASS monte plus aussi (jusqu'à +18 dB) ; courses de BASS et TREBLE douces et naturelles, plus de changement brusque à midi ; anti-gel renforcé pour la fenêtre (aucun calcul lourd au dessin, chien de garde, aucun appel à l'hôte depuis le thread audio), JUCE 8.0.15"]],
+       ["2.5.0", "BASS monte plus aussi (jusqu'à +18 dB) ; courses de BASS et TREBLE douces et naturelles, plus de changement brusque à midi ; anti-gel renforcé pour la fenêtre (aucun calcul lourd au dessin, chien de garde, aucun appel à l'hôte depuis le thread audio), JUCE 8.0.15"],
+       ["2.6.0", "Noise gate intégré (clic droit &gt; Noise gate : Off / Light / Medium / Strong, Medium par défaut) : plus de souffle ni de ronflement quand on arrête de jouer, attaques jamais coupées, notes qui s'éteignent naturellement"]],
  ver_h=["Version", "Changements"]),
 }
 

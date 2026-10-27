@@ -72,12 +72,13 @@ public:
             if (rawPtr[i] != nullptr && std::strcmp (id, rawIds[i]) == 0) return rawPtr[i]->load (std::memory_order_relaxed);
         return apvts.getRawParameterValue (id)->load();
     }
-    static constexpr int numRaw = 12;
+    static constexpr int numRaw = 13;
     static constexpr const char* rawIds[numRaw] = { "gain", "boost", "level", "treble", "mids", "bass",
-                                                     "eq", "mode", "boostOn", "active", "holdMomentary", "midiFsMode" };
+                                                     "eq", "mode", "boostOn", "active", "holdMomentary", "midiFsMode", "gate" };
     std::atomic<float>* rawPtr[numRaw] {};
 
     static juce::StringArray modeNames() { return { "SDT-2", "Laerm", "SDT-1" }; }
+    static juce::StringArray gateNames() { return { "Off", "Light", "Medium", "Strong" }; }
 
     // ---- informations pour la fenetre ----
     std::atomic<int>   currentPreset { 0 };      // >= 0 usine, 100 + n utilisateur, -1 = modifie

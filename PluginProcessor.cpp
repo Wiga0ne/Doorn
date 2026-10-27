@@ -74,6 +74,8 @@ AudioProcessorValueTreeState::ParameterLayout DoornAudioProcessor::createLayout(
     p.push_back (std::make_unique<AudioParameterBool>   (ParameterID { "holdMomentary", 1 }, "Hold = Momentary", true));
     p.push_back (std::make_unique<AudioParameterChoice> (ParameterID { "midiFsMode", 1 }, "MIDI Footswitch Mode",
                                                          StringArray { "Latching (127 / 0)", "Momentary (toggle)" }, 0));
+    // v2.6 noise gate integre (le grand gain de la Thorn fait monter le souffle et le ronflement quand on ne joue pas)
+    p.push_back (std::make_unique<AudioParameterChoice> (ParameterID { "gate", 1 }, "Noise Gate", gateNames(), 2));
     return { p.begin(), p.end() };
 }
 
@@ -257,6 +259,7 @@ void DoornAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& 
     p.mode    = jlimit (0, 2, roundToInt (raw ("mode")));
     p.boostOn = raw ("boostOn") > 0.5f;
     p.active  = raw ("active") > 0.5f;
+    p.gate    = jlimit (0, 3, roundToInt (raw ("gate")));
 
     const int nCh = jmin (2, buffer.getNumChannels());
     float* io[2] = { buffer.getWritePointer (0), nCh > 1 ? buffer.getWritePointer (1) : nullptr };

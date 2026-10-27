@@ -28,6 +28,7 @@ Usage personnel. Windows 11 et macOS (binaire universel).
 | Mode Laerm | Plus ouvert, plus direct, plus fort | Seuil d'écrêtage plus haut (type LED), bande passante plus large, ≈ +4 dB |
 | Footswitch BYPASS | Relais « Smart Relay » | Clic = on / off ; **appui maintenu** (> 0,45 s) quand l'effet était coupé = fonctionnement momentané (désactivable, clic droit > Settings) |
 | Footswitch BOOST | Boost on / off | Même comportement que BYPASS |
+| Noise gate (ajout Doorn) | — (la Thorn est bruyante à fort gain) | Clic droit > *Noise gate* : Off / Light / Medium (défaut) / Strong. Détection sur l'entrée, en avance de 32 échantillons sur le signal traité (attaques intactes), hystérésis 6 dB, maintien 60 ms, fermeture douce 120 ms ; n'agit que sur l'effet. Souffle de −80 dBFS en entrée : −9 dBFS en sortie sans gate, silence avec |
 | LED | Une seule LED entre les footswitchs | Rouge = effet actif ; la façade s'éclaire autour. Boost engagé : le potard BOOST transparent s'éclaire de l'intérieur et son curseur devient visible |
 
 Sources : fiche Lichtlaerm Audio (lichtlaermaudio.com/shop/thorn), test Guitar Pedal X, Effects Database,
