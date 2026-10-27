@@ -11,5 +11,5 @@ target_sources(DoornRender PRIVATE main.cpp ${W}/PluginProcessor.cpp ${W}/Plugin
 target_include_directories(DoornRender PRIVATE ${W})
 target_compile_definitions(DoornRender PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_ALSA=0 JUCE_JACK=0
   JUCE_USE_XRANDR=0 JUCE_USE_XINERAMA=0 JUCE_USE_XCURSOR=0 JucePlugin_Name="Doorn" JucePlugin_Build_VST3=0
-  JucePlugin_VersionString="1.7.0" JUCE_STANDALONE_APPLICATION=1 JUCE_MODAL_LOOPS_PERMITTED=1)
+  JucePlugin_VersionString="1.8.0" JUCE_STANDALONE_APPLICATION=1 JUCE_MODAL_LOOPS_PERMITTED=1)
 target_link_libraries(DoornRender PRIVATE DoornAssets juce::juce_audio_utils juce::juce_recommended_config_flags)
