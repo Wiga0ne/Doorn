@@ -28,13 +28,15 @@
 #include <algorithm>
 #include <cstring>
 
+// v1.7 : graves / bas-mediums nets : le grave est retire AVANT l'ecretage (passe-haut x1,8, liaison entre etages a 180 Hz)
+// puis rendu APRES (pas d'intermodulation qui bave), mordant a 1,8 kHz avant l'ecretage pour un son tranche.
 // v1.6 : son metal / stoner de la Thorn : mordant du boost dans la voix de base, grave epais mais ferme,
 // haut chaud, grain un peu fuzz ; dynamique de jeu rendue (anti-compression)
 #ifndef DOORN_SCOOP_HZ
  #define DOORN_SCOOP_HZ 650.0
 #endif
 #ifndef DOORN_SCOOP_DB
- #define DOORN_SCOOP_DB -12.0
+ #define DOORN_SCOOP_DB -10.0
 #endif
 #ifndef DOORN_SCOOP_Q
  #define DOORN_SCOOP_Q 0.60
@@ -47,6 +49,18 @@
 #endif
 #ifndef DOORN_LP_SCALE
  #define DOORN_LP_SCALE 1.0
+#endif
+#ifndef DOORN_HP_MUL
+ #define DOORN_HP_MUL 1.8f
+#endif
+#ifndef DOORN_POSTBASS
+ #define DOORN_POSTBASS 4.0
+#endif
+#ifndef DOORN_BITE_DB
+ #define DOORN_BITE_DB 5.0
+#endif
+#ifndef DOORN_INTER_HZ
+ #define DOORN_INTER_HZ 180.0
 #endif
 #ifndef DOORN_G0
  #define DOORN_G0 20.0f
@@ -273,13 +287,13 @@ namespace doorn
             envR = (float) (1.0 - std::exp (-1.0 / (0.030 * sr)));     //               relachement 30 ms
             refR = (float) (1.0 - std::exp (-1.0 / (0.700 * sr)));     // reference : crete lente (700 ms)
             dcOut.setLP (sr, 12.0);
-            inter.setLP (srO, 45.0);
+            inter.setLP (srO, DOORN_INTER_HZ);
             reset();
         }
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &eqBass, &eqMid, &eqTreb })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); bassLP.reset(); env = ref = 0.0f;
         }
@@ -295,11 +309,12 @@ namespace doorn
             st1lp.setLP (srO, st1Fc);
             post1.lowpass (srO, v.postLP * DOORN_LP_SCALE, 0.62);
             post2.lowpass (srO, v.postLP * DOORN_LP_SCALE * 1.6, 0.55);
-            outLow.peak (sr, 100.0, 0.8, v.lowShelfDb + DOORN_LOW_DB + 2.0);   // grave epais facon stoner, mais ferme (bosse, pas de plateau)
+            outLow.peak (sr, 100.0, 0.8, v.lowShelfDb + DOORN_LOW_DB + 2.0 + DOORN_POSTBASS);   // grave epais facon stoner, mais ferme (bosse, pas de plateau)
             outSub.highpass (sr, 55.0, 0.7);
             outHigh.highShelf (sr, v.highShelfHz, v.highShelfDb + DOORN_HIGH_DB);
             outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
             outPres.peak (sr, 2900.0, 0.9, v.presenceDb);
+            preBite.peak (sr, 1800.0, 0.8, DOORN_BITE_DB);     // attaque / mordant avant l'ecretage
             eqBass.lowShelf (sr, 100.0, bassDb, 0.7);
             eqMid.peak (sr, 1000.0, 0.85, midDb);
             eqTreb.highShelf (sr, 3000.0, trebDb, 0.7);
@@ -314,7 +329,7 @@ namespace doorn
             env += (ax - env) * (ax > env ? envA : envR);
             ref = std::max (env, ref + (env - ref) * refR);
             x = hp2.process (hp.process (x));
-            x = prePeak.process (preMud.process (x));
+            x = preBite.process (prePeak.process (preMud.process (x)));
             x = preLP.process (x);
 
             float up[Oversampler4::factor];
@@ -359,7 +374,7 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, hp2, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
+        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, eqBass, eqMid, eqTreb;
         OnePole dcIn, dcOut, inter, st1lp;
         Biquad bassLP;
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
@@ -475,7 +490,7 @@ namespace doorn
         {
             const float bon = sBoostOn.s2;
             const float bo  = sBoost.s2 / 10.0f;
-            const float hpHz = v.hpHz + 45.0f * bon * (0.35f + 0.65f * bo);     // le boost resserre le grave
+            const float hpHz = v.hpHz * DOORN_HP_MUL + 45.0f * bon * (0.35f + 0.65f * bo);     // le boost resserre le grave
             // filtre de l'ampli op : la bande passante baisse quand le gain monte
             const float gTot = gainDb (sGain.s2) + boostDb (sBoost.s2) * bon;
             const float st1Fc = 14000.0f - 70.0f * clampf (gTot, 0.0f, 60.0f);
