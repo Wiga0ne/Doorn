@@ -28,6 +28,8 @@
 #include <algorithm>
 #include <cstring>
 
+// v2.1 : moins sourd, voix stoner medium / medium-aigu : creux des mediums remplace par une poussee 900 Hz / 2 kHz,
+// couche fuzz plus ouverte, aigus +2 dB, bas-mediums allieges.
 // v2.0 : grain et gras stoner : couche fuzz parallele (facon Big Muff, asymetrique) + bosse de corps vers 220 Hz apres ecretage.
 // v1.9 : BASS avec punch / presence apres l'ecretage (sans compression), boost bien audible, gain encore plus tot.
 // v1.8 : le gain monte plus tot sur la course du potard (plein grain des ~9 h), bas-mediums rendus
@@ -37,19 +39,19 @@
 // v1.6 : son metal / stoner de la Thorn : mordant du boost dans la voix de base, grave epais mais ferme,
 // haut chaud, grain un peu fuzz ; dynamique de jeu rendue (anti-compression)
 #ifndef DOORN_SCOOP_HZ
- #define DOORN_SCOOP_HZ 650.0
+ #define DOORN_SCOOP_HZ 420.0
 #endif
 #ifndef DOORN_SCOOP_DB
- #define DOORN_SCOOP_DB -10.0
+ #define DOORN_SCOOP_DB -4.0
 #endif
 #ifndef DOORN_SCOOP_Q
- #define DOORN_SCOOP_Q 0.60
+ #define DOORN_SCOOP_Q 0.80
 #endif
 #ifndef DOORN_LOW_DB
  #define DOORN_LOW_DB -2.5
 #endif
 #ifndef DOORN_HIGH_DB
- #define DOORN_HIGH_DB 0.0
+ #define DOORN_HIGH_DB 3.5
 #endif
 #ifndef DOORN_LP_SCALE
  #define DOORN_LP_SCALE 1.0
@@ -70,7 +72,7 @@
  #define DOORN_MUD_DB -3.0
 #endif
 #ifndef DOORN_LOWMID_DB
- #define DOORN_LOWMID_DB 4.0
+ #define DOORN_LOWMID_DB 1.5
 #endif
 #ifndef DOORN_LOWMID_HZ
  #define DOORN_LOWMID_HZ 320.0
@@ -79,7 +81,7 @@
  #define DOORN_FUZZ_MIX 0.30f
 #endif
 #ifndef DOORN_FAT_DB
- #define DOORN_FAT_DB 3.0
+ #define DOORN_FAT_DB 2.0
 #endif
 #ifndef DOORN_FAT_HZ
  #define DOORN_FAT_HZ 220.0
@@ -311,13 +313,13 @@ namespace doorn
             dcOut.setLP (sr, 12.0);
             inter.setLP (srO, DOORN_INTER_HZ);
             fzHP.setLP (srO, 140.0);
-            fzLP.setLP (srO, 4600.0);
+            fzLP.setLP (srO, 6500.0);
             reset();
         }
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &boostPres })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &boostPres })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); fzHP.reset(); fzLP.reset(); bassLP.reset(); env = ref = 0.0f;
         }
@@ -340,6 +342,9 @@ namespace doorn
             outHigh.highShelf (sr, v.highShelfHz, v.highShelfDb + DOORN_HIGH_DB);
             outScoop.peak (sr, DOORN_SCOOP_HZ, DOORN_SCOOP_Q, DOORN_SCOOP_DB);   // creux des mediums de la Thorn
             outPres.peak (sr, 2900.0, 0.9, v.presenceDb);
+            // v2.1 voix stoner « medium / medium-aigu » (facon Orange / Sunn) : mediums en avant au lieu d'etre creuses
+            outMidPush.peak (sr, 900.0, 0.8, 5.0);
+            outHiMid.peak (sr, 2300.0, 0.9, 4.5);
             boostPres.peak (sr, 1600.0, 0.7, 4.5 * boostMix);   // v1.9 boost : mediums-aigus en avant (le son passe devant)
             preBite.peak (sr, 1800.0, 0.8, DOORN_BITE_DB);     // attaque / mordant avant l'ecretage
             // v1.9 : BASS = plateau 90 Hz + bosse de presence / punch vers 120 Hz (attaque du grave), apres l'ecretage :
@@ -406,7 +411,7 @@ namespace doorn
                 // comme un ampli qui « respire » ; jusqu'a -9 dB quand la note s'eteint
                 y *= clampf (std::pow (rel + 1.0e-4f, 0.33f), 0.35f, 1.0f);
             }
-            y = outPres.process (outHigh.process (outScoop.process (outFat.process (outLowMid.process (outLow.process (outSub.process (y)))))));
+            y = outHiMid.process (outMidPush.process (outPres.process (outHigh.process (outScoop.process (outFat.process (outLowMid.process (outLow.process (outSub.process (y)))))))));
             const float e = eqTreb.process (eqMid.process (eqBassPunch.process (eqBass.process (y))));
             return y + (e - y) * eqMix;
         }
@@ -414,7 +419,7 @@ namespace doorn
     private:
         double sr = 48000.0, srO = 192000.0;
         Oversampler4 os;
-        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, eqBass, eqBassPunch, eqMid, eqTreb, boostPres;
+        Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, boostPres;
         OnePole dcIn, dcOut, inter, st1lp, fzHP, fzLP;
         Biquad bassLP;
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
@@ -523,7 +528,7 @@ namespace doorn
             }
         }
 
-        float outTrim = 3.0f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
+        float outTrim = 1.5f;           // calibrage : SDT-1, gain 15 h, level midi ~ niveau d'une guitare DI
         float lastBoostMix = 0.0f;
 
     private:
