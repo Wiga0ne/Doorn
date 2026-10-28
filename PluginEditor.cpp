@@ -18,8 +18,8 @@ namespace
     const Point<float> boostPos = layout::boostPos, bypassPos = layout::bypassPos;
     const float footR = 60.0f * layout::sc;
     // ligne d'etat et barre de presets : entre les inscriptions des inverseurs et la LED
-    const Rectangle<float> statusRect { 240.0f, 599.0f, 280.0f, 41.0f };
-    const Rectangle<float> presetRect { 222.0f, 646.0f, 316.0f, 29.0f };
+    const Rectangle<float> statusRect { 196.0f, 590.0f, 368.0f, 50.0f };   // v2.10 : plus grande et plus contrastee
+    const Rectangle<float> presetRect { 186.0f, 645.0f, 388.0f, 37.0f };
 
     const float rotStart = MathConstants<float>::pi * (7.0f / 6.0f);    // -150 degres
     const float rotEnd   = MathConstants<float>::pi * (17.0f / 6.0f);   // +150 degres
@@ -560,31 +560,31 @@ void DoornAudioProcessorEditor::drawStatus (Graphics& g)
 {
     const float a = statusAlpha;
     if (a <= 0.0f) return;
-    g.setColour (Colour (0xff070a14).withAlpha (0.80f * a));
+    g.setColour (Colour (0xff070a14).withAlpha (0.93f * a));
     g.fillRoundedRectangle (statusRect, 8.0f);
     g.setColour (Colour (0xffb79f6e).withAlpha (0.45f * a));       // filet couleur des fissures dorees
     g.drawRoundedRectangle (statusRect.reduced (0.75f), 9.0f, 1.3f);
 
-    const Font f (FontOptions (labelFace).withHeight (27.0f));
+    const Font f (FontOptions (labelFace).withHeight (38.0f));
     g.setFont (f);
     g.setColour (inkWhite.withAlpha (a));
-    g.drawFittedText (lastLine1, statusRect.toNearestInt(), Justification::centred, 1, 0.8f);
+    g.drawFittedText (lastLine1, statusRect.reduced (10.0f, 0.0f).toNearestInt(), Justification::centred, 1, 0.75f);
 }
 
 void DoornAudioProcessorEditor::drawPresetBar (Graphics& g)
 {
     const auto r = presetRect;
-    g.setColour (Colour (0xff070a14).withAlpha (0.62f));
+    g.setColour (Colour (0xff070a14).withAlpha (0.85f));
     g.fillRoundedRectangle (r, r.getHeight() * 0.5f);
     g.setColour (Colour (0xffb79f6e).withAlpha (hoverZone != 0 ? 0.65f : 0.32f));
     g.drawRoundedRectangle (r.reduced (0.6f), r.getHeight() * 0.5f, 1.1f);
 
-    const float aw = 26.0f;
+    const float aw = 34.0f;
     auto arrow = [&] (Rectangle<float> ar, bool left, bool hot)
     {
         Path p;
         const auto c = ar.getCentre();
-        const float s = 4.6f;
+        const float s = 6.5f;
         if (left) p.addTriangle (c.x + s * 0.6f, c.y - s, c.x + s * 0.6f, c.y + s, c.x - s * 0.8f, c.y);
         else      p.addTriangle (c.x - s * 0.6f, c.y - s, c.x - s * 0.6f, c.y + s, c.x + s * 0.8f, c.y);
         g.setColour (inkWhite.withAlpha (hot ? 1.0f : 0.62f));
@@ -593,7 +593,7 @@ void DoornAudioProcessorEditor::drawPresetBar (Graphics& g)
     arrow (r.withWidth (aw), true, hoverZone == 1);
     arrow (r.withTrimmedLeft (r.getWidth() - aw), false, hoverZone == 3);
 
-    g.setFont (Font (FontOptions (labelFace).withHeight (17.5f)));
+    g.setFont (Font (FontOptions (labelFace).withHeight (25.0f)));
     g.setColour ((midiFlash > 0 ? Colour (0xffffc070) : inkWhite).withAlpha (hoverZone == 2 ? 1.0f : 0.88f));
     g.drawFittedText (lastPreset, r.reduced (aw, 0.0f).toNearestInt(), Justification::centred, 1, 0.7f);
 }
@@ -632,8 +632,8 @@ void DoornAudioProcessorEditor::paint (Graphics& g)
 static int presetZoneAt (Point<float> p)
 {
     if (! presetRect.contains (p)) return 0;
-    if (p.x < presetRect.getX() + 26.0f) return 1;
-    if (p.x > presetRect.getRight() - 26.0f) return 3;
+    if (p.x < presetRect.getX() + 34.0f) return 1;
+    if (p.x > presetRect.getRight() - 34.0f) return 3;
     return 2;
 }
 

@@ -16,7 +16,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "2.9.0"
+VERSION = "2.10.0"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -235,7 +235,8 @@ T = {
        ["2.6.0", "Built-in noise gate (right-click &gt; Noise gate: Off / Light / Medium / Strong, Medium by default): no more hiss or hum when you stop playing, attacks never cut, notes fade naturally"],
        ["2.7.0", "Clearer, more defined sound on every preset, less nasal mids; presets with TREBLE at max lowered"],
        ["2.8.0", "No more whistle after the pick attack: highs limited before the clipping, definition moved to about 3.2 kHz where the harmonics stay clean, no more air boost at 6 kHz"],
-       ["2.9.0", "A little less fuzz: the fuzz layer now makes about 40 % of the sound and the diode distortion about 60 % (was about 50 / 50), same level"]],
+       ["2.9.0", "A little less fuzz: the fuzz layer now makes about 40 % of the sound and the diode distortion about 60 % (was about 50 / 50), same level"],
+       ["2.10.0", "Bigger, more readable status line and preset bar (larger text, darker background)"]],
  ver_h=["Version", "Changes"]),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
@@ -310,7 +311,8 @@ T = {
        ["2.6.0", "Noise gate intégré (clic droit &gt; Noise gate : Off / Light / Medium / Strong, Medium par défaut) : plus de souffle ni de ronflement quand on arrête de jouer, attaques jamais coupées, notes qui s'éteignent naturellement"],
        ["2.7.0", "Son plus clair et plus défini sur tous les presets, médiums moins nasaux ; presets avec TREBLE au maximum baissés"],
        ["2.8.0", "Fini le sifflement après l'attaque : aigus limités avant l'écrêtage, définition placée vers 3,2 kHz où les harmoniques restent nettes, plus d'accent d'air à 6 kHz"],
-       ["2.9.0", "Un peu moins de fuzz : la couche fuzz fait maintenant environ 40 % du son et la distorsion à diodes environ 60 % (avant environ 50 / 50), même niveau"]],
+       ["2.9.0", "Un peu moins de fuzz : la couche fuzz fait maintenant environ 40 % du son et la distorsion à diodes environ 60 % (avant environ 50 / 50), même niveau"],
+       ["2.10.0", "Ligne d'état et barre de presets plus grandes et plus lisibles (texte agrandi, fond plus sombre)"]],
  ver_h=["Version", "Changements"]),
 }
 
