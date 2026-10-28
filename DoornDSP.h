@@ -28,6 +28,12 @@
 #include <algorithm>
 #include <cstring>
 
+// v2.11 : calage sur la video Dirty Demos « Michael Klein SPD100 + Lichtlaerm Audio Thorn » (audio capture et
+//         mesure en 1/3 d'octave, reglages releves image par image, comparaison a travers deux reponses de baffle 4x12 SM57) :
+//         voix fixe apres l'ecretage (moins de 400 Hz - 1,5 kHz, presence 2,2 kHz au lieu de 3,2 kHz, poussee 900 Hz retiree),
+//         MIDS centre a 750 Hz et +-5 dB, TREBLE doux autour de midi (shelf 4 kHz), BOOST sans poussee de mediums
+//         (+0,8 dB a 1,6 kHz au lieu de +4,5) et +1,5 dB de niveau au lieu de +4 : sur la vraie pedale le boost ajoute
+//         du gain et resserre le grave sans changer la couleur.
 // v2.4 : TREBLE peut monter beaucoup plus (+21 dB et brillance 4,5 kHz).
 // v2.9 : un peu moins de fuzz : fuzz ~40 % / distorsion ~60 % dans le son (avant ~50 / 50), meme niveau.
 // v2.8 : fin du sifflement apres l'attaque (souffle et intermodulation des partiels aigus amplifies par l'ecretage,
@@ -52,7 +58,7 @@
 // v1.6 : son metal / stoner de la Thorn : mordant du boost dans la voix de base, grave epais mais ferme,
 // haut chaud, grain un peu fuzz ; dynamique de jeu rendue (anti-compression)
 #ifndef DOORN_MIDPUSH_DB
- #define DOORN_MIDPUSH_DB 3.0
+ #define DOORN_MIDPUSH_DB 0.0    // v2.11 : poussee 900 Hz retiree (absente de la vraie Thorn)
 #endif
 #ifndef DOORN_HIMID_DB
  #define DOORN_HIMID_DB 1.5
@@ -76,7 +82,7 @@
  #define DOORN_CLAR_DB 5.0
 #endif
 #ifndef DOORN_CLAR_HZ
- #define DOORN_CLAR_HZ 3200.0
+ #define DOORN_CLAR_HZ 2200.0    // v2.11 : presence de la Thorn vers 2 - 2,5 kHz (et non 3,2 kHz)
 #endif
 #ifndef DOORN_AIR_DB
  #define DOORN_AIR_DB 0.0
@@ -145,8 +151,33 @@
  #define DOORN_GEXP 0.50f
 #endif
 
+// v2.11 : voix calee sur la video « Michael Klein SPD100 + Lichtlaerm Audio Thorn » (Dirty Demos) :
+// egaliseur fixe apres l'ecretage, gains obtenus par moindres carres sur le spectre moyen de la vraie Thorn
+#ifndef DOORN_VEQ
+ #define DOORN_VEQ 1.4, 2.2, -1.1, -4.3, -3.5, -0.9, 1.0, 2.5
+#endif
+#ifndef DOORN_TREB_K
+ #define DOORN_TREB_K 2.0
+#endif
+#ifndef DOORN_TREB_HZ
+ #define DOORN_TREB_HZ 4000.0
+#endif
+#ifndef DOORN_MID_HZ
+ #define DOORN_MID_HZ 750.0
+#endif
+#ifndef DOORN_MID_RANGE
+ #define DOORN_MID_RANGE 5.0f
+#endif
+#ifndef DOORN_BOOST_PRES
+ #define DOORN_BOOST_PRES 0.8
+#endif
+#ifndef DOORN_BOOST_LVL
+ #define DOORN_BOOST_LVL 1.5f
+#endif
 namespace doorn
 {
+    constexpr double veqHz[8] = { 100.0, 200.0, 400.0, 700.0, 1250.0, 2200.0, 3600.0, 6000.0 };
+    constexpr double veqDb[8] = { DOORN_VEQ };
     constexpr double pi = 3.14159265358979323846;
 
     inline float clampf (float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
@@ -369,7 +400,7 @@ namespace doorn
         void reset()
         {
             os.reset();
-            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &eqTrebAir, &boostPres, &preEdge, &outClar, &outAir, &outFizz, &preLP2 })
+            for (auto* b : { &hp, &hp2, &preBite, &preMud, &outScoop, &outSub, &prePeak, &preLP, &post1, &post2, &outLow, &outHigh, &outPres, &outLowMid, &outFat, &outMidPush, &outHiMid, &eqBass, &eqBassPunch, &eqMid, &eqTreb, &eqTrebAir, &boostPres, &preEdge, &outClar, &outAir, &outFizz, &preLP2, &veq[0], &veq[1], &veq[2], &veq[3], &veq[4], &veq[5], &veq[6], &veq[7] })
                 b->reset();
             dcIn.reset(); dcOut.reset(); inter.reset(); st1lp.reset(); fzHP.reset(); fzLP.reset(); bassLP.reset(); env = ref = 0.0f;
         }
@@ -400,7 +431,7 @@ namespace doorn
             // v2.1 voix stoner « medium / medium-aigu » (facon Orange / Sunn) : mediums en avant au lieu d'etre creuses
             outMidPush.peak (sr, 900.0, 0.8, DOORN_MIDPUSH_DB);
             outHiMid.peak (sr, 2300.0, 0.9, DOORN_HIMID_DB);
-            boostPres.peak (sr, 1600.0, 0.7, 4.5 * boostMix);   // v1.9 boost : mediums-aigus en avant (le son passe devant)
+            boostPres.peak (sr, 1600.0, 0.7, DOORN_BOOST_PRES * boostMix);   // v2.11 : la vraie Thorn ne pousse presque pas les mediums au boost   // v1.9 boost : mediums-aigus en avant (le son passe devant)
             preBite.peak (sr, 1800.0, 0.8, DOORN_BITE_DB);     // attaque / mordant avant l'ecretage
             // v1.9 : BASS = plateau 90 Hz + bosse de presence / punch vers 120 Hz (attaque du grave), apres l'ecretage :
             // le grave gagne du corps sans que la distorsion ne compresse davantage
@@ -409,14 +440,17 @@ namespace doorn
             {
                 const double xb = (double) bassDb, xt = (double) trebDb;
                 const double bDb = xb >= 0 ? 12.0 * xb + 6.0 * xb * xb : 12.0 * xb - 3.0 * xb * xb;   // -15 .. +18 dB
-                const double tDb = xt >= 0 ? 12.0 * xt + 10.0 * xt * xt : 12.0 * xt - 3.0 * xt * xt;   // -15 .. +22 dB
+                // v2.11 : TREBLE beaucoup plus doux autour de midi (mesure sur la vraie Thorn : 3 graduations ne changent
+                // presque rien), la course accelere toujours vers les butees
+                const double tDb = xt >= 0 ? DOORN_TREB_K * xt + 10.0 * xt * xt : DOORN_TREB_K * xt - 3.0 * xt * xt;
                 const double punchK = 0.575 + 0.175 * xb;                                              // 0,40 -> 0,75 sans saut
                 eqBass.lowShelf (sr, 90.0, bDb * 0.6, 0.7);
                 eqBassPunch.peak (sr, 120.0, 1.2, bDb * punchK);
-                eqTreb.highShelf (sr, 3000.0, tDb, 0.7);
-                eqTrebAir.peak (sr, 4500.0, 0.9, xt > 0 ? 7.0 * xt * xt : 0.0);                       // brillance progressive
+                eqTreb.highShelf (sr, DOORN_TREB_HZ, tDb, 0.7);
+                eqTrebAir.peak (sr, 5500.0, 0.9, xt > 0 ? 4.0 * xt * xt : 0.0);                       // brillance progressive
             }
-            eqMid.peak (sr, 1000.0, 0.85, midDb);
+            eqMid.peak (sr, DOORN_MID_HZ, 1.0, midDb);   // v2.11 : medium de la Thorn centre vers 750 Hz, course plus douce
+            for (int k = 0; k < 8; ++k) veq[k].peak (sr, veqHz[k], 1.1, veqDb[k]);
         }
 
         // un echantillon ; g1 / g2 : gains des deux etages, eqMix : 0 = EQ retire, 1 = EQ actif
@@ -477,6 +511,7 @@ namespace doorn
                 y *= clampf (std::pow (rel + 1.0e-4f, 0.33f), 0.35f, 1.0f);
             }
             y = outFizz.process (outAir.process (outClar.process (outHiMid.process (outMidPush.process (outPres.process (outHigh.process (outScoop.process (outFat.process (outLowMid.process (outLow.process (outSub.process (y))))))))))));
+            for (auto& f : veq) y = f.process (y);
             const float e = eqTrebAir.process (eqTreb.process (eqMid.process (eqBassPunch.process (eqBass.process (y)))));
             return y + (e - y) * eqMix;
         }
@@ -487,6 +522,7 @@ namespace doorn
         Biquad hp, hp2, preBite, preMud, outScoop, outSub, prePeak, preLP, post1, post2, outLow, outHigh, outPres, outLowMid, outFat, outMidPush, outHiMid, eqBass, eqBassPunch, eqMid, eqTreb, eqTrebAir, boostPres, preEdge, outClar, outAir, outFizz, preLP2;
         OnePole dcIn, dcOut, inter, st1lp, fzHP, fzLP;
         Biquad bassLP;
+        Biquad veq[8];
         float env = 0.0f, ref = 0.0f, envA = 0.01f, envR = 0.001f, refR = 0.0001f;
     };
 
@@ -581,7 +617,7 @@ namespace doorn
                 const float g1 = dbToGain (std::min (totalDb, 30.0f) * 0.85f - 2.0f);
                 const float g2 = dbToGain (std::max (0.0f, totalDb - 30.0f) + 3.0f) * 0.6f;
                 // v1.9 boost : +0 a +4 dB de niveau en plus (comme un vrai boost devant un etage deja sature)
-                const float out = dbToGain (levelDb (lv) + mk + outTrim + 4.0f * bon * clampf (bo / 10.0f, 0.0f, 1.0f)) * sMode.s2;
+                const float out = dbToGain (levelDb (lv) + mk + outTrim + DOORN_BOOST_LVL * bon * clampf (bo / 10.0f, 0.0f, 1.0f)) * sMode.s2;
 
                 // v2.6 noise gate : la detection voit l'entree 32 echantillons avant la sortie traitee
                 // (latence du sur-echantillonnage) : l'attaque des notes n'est jamais mangee
@@ -635,7 +671,7 @@ namespace doorn
             const float gTot = gainDb (sGain.s2) + boostDb (sBoost.s2) * bon;
             const float st1Fc = DOORN_ST1 - 70.0f * clampf (gTot, 0.0f, 60.0f);
             for (int c = 0; c < nCh; ++c)
-                ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 1.0f), eqDb (sMid.s2, 12.0f), eqDb (sTreb.s2, 1.0f), bon * (0.4f + 0.6f * bo));
+                ch[c].updateFilters (v, hpHz, st1Fc, eqDb (sBass.s2, 1.0f), eqDb (sMid.s2, DOORN_MID_RANGE), eqDb (sTreb.s2, 1.0f), bon * (0.4f + 0.6f * bo));
         }
 
         static inline float safety (float x) noexcept

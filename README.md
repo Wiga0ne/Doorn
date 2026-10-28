@@ -20,8 +20,8 @@ Usage personnel. Windows 11 et macOS (binaire universel).
 |---|---|---|
 | GAIN | Distorsion dure, mur de son, passe en fuzz au-delà de 13 h | 20 à 72 dB répartis sur deux étages d'ampli op (alimentation ~18 V par pompe de charge : grande réserve), écrêtage par diodes à la masse, sur-échantillonnage x4 |
 | LEVEL | Volume de sortie | Courbe audio, 0 = coupé, maxi = 0 dBFS de marge |
-| BOOST (petit potard + footswitch) | Boost réglable, **additif** : s'ajoute au gain, resserre l'attaque, ajoute du sustain | 0 à +20 dB avant l'écrêtage, passe-haut d'entrée remonté (grave plus serré), jusqu'à +4 dB de niveau et poussée vers 1,6 kHz (bien audible) |
-| TREBLE / MIDS / BASS | EQ actif 3 bandes, médium à 1 kHz | Grave : plateau 90 Hz + bosse de punch vers 120 Hz −15 / +18 dB (après la distorsion, sans compression), cloche 1 kHz ±12 dB, plateau aigu 3 kHz −15 / +22 dB (brillance vers 4,5 kHz qui arrive progressivement) ; midi = plat, courses BASS / TREBLE douces et continues (fines autour de midi, plus fortes vers les butées, aucun saut). Voix du circuit calée sur un enregistrement de la vraie Thorn : voix stoner médium / médium-aigu (poussée 900 Hz et 2,3 kHz) sur un bas présent (grave vers 100 Hz, corps vers 220 / 320 Hz), grave serré (grave retiré avant l'écrêtage puis rendu après, liaison de 180 Hz entre étages, grave qui suit le jeu), mordant à 1,8 kHz avant l'écrêtage, définition sans sifflement (v2.8) : aigus limités avant l'écrêtage (2 pôles 5 / 7 kHz, pour ne pas amplifier le souffle et l'intermodulation des partiels aigus de la corde), clarté vers 3,2 kHz après l'écrêtage, là où ses harmoniques restent nettes, sortie refermée au-dessus de ~9 kHz, écrêtage franc, mordant intégré sans boost, sortie qui suit la dynamique du jeu (pas d'effet compressé), caractère metal / stoner : couche fuzz façon Big Muff mélangée à la distorsion (environ 40 % fuzz / 60 % distorsion dans le son, grain fuzz) et bosse de corps vers 220 Hz (gras) |
+| BOOST (petit potard + footswitch) | Boost réglable, **additif** : s'ajoute au gain, resserre l'attaque, ajoute du sustain | 0 à +20 dB avant l'écrêtage, passe-haut d'entrée remonté (grave plus serré), +1,5 dB de niveau au plus ; v2.11 : plus de poussée de médiums (mesure sur la vraie Thorn : le boost ne change presque pas la couleur, seulement un grave plus serré et un peu plus de grain en haut) |
+| TREBLE / MIDS / BASS | EQ actif 3 bandes | Grave : plateau 90 Hz + bosse de punch vers 120 Hz −15 / +18 dB (après la distorsion, sans compression), cloche 750 Hz ±5 dB (v2.11), plateau aigu 4 kHz doux autour de midi, −5 / +16 dB aux butées (v2.11 : sur la vraie Thorn, 3 graduations de treble changent très peu le son) ; midi = plat, courses BASS / TREBLE douces et continues (fines autour de midi, plus fortes vers les butées, aucun saut). **v2.11 : voix calée sur la vidéo Dirty Demos « Michael Klein SPD100 + Lichtlaerm Audio Thorn »** (voir plus bas) : bas-médiums et médiums 400 Hz – 1,5 kHz allégés, présence vers 2,2 kHz, poussée 900 Hz retirée. Avant : voix stoner médium / médium-aigu (poussée 900 Hz et 2,3 kHz) sur un bas présent (grave vers 100 Hz, corps vers 220 / 320 Hz), grave serré (grave retiré avant l'écrêtage puis rendu après, liaison de 180 Hz entre étages, grave qui suit le jeu), mordant à 1,8 kHz avant l'écrêtage, définition sans sifflement (v2.8) : aigus limités avant l'écrêtage (2 pôles 5 / 7 kHz, pour ne pas amplifier le souffle et l'intermodulation des partiels aigus de la corde), clarté vers 3,2 kHz après l'écrêtage, là où ses harmoniques restent nettes, sortie refermée au-dessus de ~9 kHz, écrêtage franc, mordant intégré sans boost, sortie qui suit la dynamique du jeu (pas d'effet compressé), caractère metal / stoner : couche fuzz façon Big Muff mélangée à la distorsion (environ 40 % fuzz / 60 % distorsion dans le son, grain fuzz) et bosse de corps vers 220 Hz (gras) |
 | EQ off / on | L'EQ off retire complètement le tone stack du circuit (Lennart dans un Ampeg V4, EQ off) | En OFF, l'EQ n'est plus dans le trajet du signal (fondu sans clic) |
 | Mode SDT-1 | Le son de la Stampede d'origine | Silicium à la masse, médiums qui chantent, harmoniques paires |
 | Mode SDT-2 | Plus compressé et saturé, un peu moins fort (Living Gate) | Étage de compression en plus, plus sombre, ≈ −3 dB |
@@ -58,7 +58,7 @@ Kurt Ballou), guide de montage GCI Brutalist Jr (clone de la SDT-1), photo du ci
 | CC 27 | Mode (0-42 SDT-2, 43-84 Laerm, 85-127 SDT-1) |
 | CC 28 | Footswitch BOOST |
 | CC 29 | Footswitch BYPASS |
-| Program Change 1 à 10 | Presets d'usine |
+| Program Change 1 à 13 | Presets d'usine |
 
 Footswitchs MIDI à accrochage (127 = on / 0 = off, par défaut) ou momentanés (bascule à chaque appui) : clic droit > Settings.
 Pédale d'expression sans saccades : rampe vers chaque nouvelle valeur sur l'intervalle mesuré entre deux CC,
@@ -68,7 +68,26 @@ Tous les paramètres sont aussi automatisables dans le DAW.
 ## Presets d'usine
 
 1. Signature Start (réglage de départ du test Guitar Pedal X) · 2. Wall of Thorns · 3. V4 EQ Bypass · 4. Living Gate Saturation ·
-5. Laerm Open · 6. Laerm Lead Boost · 7. Stampede Crunch · 8. Hardcore Bite · 9. Sludge Sustain · 10. Thorn Reference (réglages d'une vraie Thorn, sur lesquels le son a été calé)
+5. Laerm Open · 6. Laerm Lead Boost · 7. Stampede Crunch · 8. Hardcore Bite · 9. Sludge Sustain · 10. Thorn Reference · 11. Thorn Reference Boost · 12. Thorn Video Mids · 13. Thorn Video Mids Boost (réglages relevés dans la vidéo de référence, sur lesquels le son a été calé)
+
+## Calage sur la vraie Thorn (v2.11)
+
+Référence : vidéo YouTube *Michael Klein SPD100 + Lichtlaerm Audio Thorn* (chaîne Dirty Demos ; Carvin DC200 en B standard, baffle Celestion Redback, SM57 + M201).
+L'audio de toute la vidéo a été capturé et mesuré en tiers d'octave ; les réglages ont été relevés image par image (le plan est fixe sur la pédale) :
+
+| Passage | Gain | Level | Treble | Mids | Bass | Boost |
+|---|---|---|---|---|---|---|
+| 0:08 – 0:36 | ~10 h 30 | ~13 h | ~13 h 30 | ~12 h | ~15 h | off |
+| 0:39 – 0:55 | idem | idem | idem | idem | idem | on |
+| 5:16 – 8:19 | ~10 h | ~14 h 30 | ~10 h 30 | ~13 h 30 | ~13 h 30 | on |
+| 9:34 – 11:36 | ~11 h | ~15 h | ~10 h | ~13 h 30 | ~13 h 30 | off |
+
+Doorn passe par une vraie guitare DI transposée en B et deux réponses de baffle 4x12 + SM57 ; la voix fixe est ajustée par moindres carrés
+(courbe lisse, pour ne pas recopier le baffle de la vidéo) et les courses MIDS / TREBLE / BOOST sont réglées sur les différences mesurées entre passages
+(ce qui neutralise en grande partie ampli, baffle et micros). Écart moyen au spectre de la vraie Thorn : 4,9 → 3,0 dB (passage de référence), 6,7 → 3,5 dB et 7,8 → 3,9 dB (réglages « mids »),
+soit l'ordre de grandeur de la différence entre les deux baffles utilisés : c'est la limite de ce que la méthode peut trancher.
+Limites : l'ampli SPD100 colore aussi le son de la vidéo ; le niveau du boost et la position des inverseurs (EQ on, SDT-1 supposés) ne sont pas lisibles en 480p ;
+YouTube normalise le volume (les niveaux relatifs ne sont pas mesurables). Données : `tools/video_reference.json`, comparaison : `tools/video_match.py`.
 
 ## Fichiers
 

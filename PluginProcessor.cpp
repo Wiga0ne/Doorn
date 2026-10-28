@@ -18,7 +18,11 @@ static const DoornPreset factoryPresets[] =
     { "Stampede Crunch",       3.0f, 5.0f, 7.5f, 6.0f, 6.0f,  5.0f, 1, 2, 0 },
     { "Hardcore Bite",         9.5f, 4.0f, 6.5f, 7.5f, 6.5f,  4.5f, 1, 2, 0 },
     { "Sludge Sustain",        10.f, 5.0f, 7.0f, 5.0f, 2.5f,  9.0f, 1, 0, 1 },
-    { "Thorn Reference",       4.3f, 0.0f, 5.8f, 5.8f, 5.0f,  8.0f, 1, 2, 0 },   // reglages de la vraie pedale (photo + enregistrement)
+    // v2.11 : reglages releves dans la video Dirty Demos « Michael Klein SPD100 + Lichtlaerm Audio Thorn », sur lesquels la voix est calee
+    { "Thorn Reference",       3.8f, 2.0f, 6.0f, 6.5f, 5.0f,  8.0f, 1, 2, 0 },   // 0:08 - 0:36
+    { "Thorn Reference Boost", 3.8f, 2.0f, 6.0f, 6.5f, 5.0f,  8.0f, 1, 2, 1 },   // 0:39 - 0:55
+    { "Thorn Video Mids",      4.2f, 2.0f, 8.0f, 3.3f, 6.5f,  6.5f, 1, 2, 0 },   // 9:34 - 11:36
+    { "Thorn Video Mids Boost",3.3f, 2.0f, 7.5f, 3.5f, 6.5f,  6.5f, 1, 2, 1 },   // 5:16 - 8:19
 };
 
 int DoornAudioProcessor::getNumFactoryPresets() { return (int) std::size (factoryPresets); }
