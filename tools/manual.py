@@ -222,7 +222,7 @@ T = {
        "For low tunings (B standard like Amenra, or a 7-string in G and lower), keep BASS around noon to 1 o'clock and use the BOOST: it tightens the low end without losing weight.",
        "The original reviewer's favourite modes are SDT-1 and Laerm; SDT-2 is perfect for long, saturated chords.",
        "If some hiss remains when you stop playing, set right-click &gt; Noise gate to Strong; for very tight stops on staccato riffs, NGATE from Studio Wiga can still be added after Doorn."],
- tech_t="9. Specifications and version history",
+ tech_t="9. Specifications",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Channels", "Mono or stereo"],
        ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 26 to 72 dB, + 0 to 20 dB boost"],
        ["EQ", "bass 90 Hz + 120 Hz punch -15 / +18 dB, mids 1 kHz ±12 dB, treble 3 kHz -15 / +22 dB, bypassable"],
@@ -298,7 +298,7 @@ T = {
        "Pour les accordages bas (Si standard comme Amenra, ou une 7 cordes en Sol et plus bas), gardez BASS entre midi et 13 h et servez-vous du BOOST : il resserre le grave sans perdre de poids.",
        "Les modes préférés du testeur d'origine sont SDT-1 et Laerm ; SDT-2 est parfait pour les longs accords saturés.",
        "S'il reste du souffle quand vous arrêtez de jouer, passez clic droit &gt; Noise gate sur Strong ; pour des arrêts très secs sur les riffs saccadés, NGATE de Studio Wiga peut toujours être ajouté après Doorn."],
- tech_t="9. Caractéristiques techniques et historique des versions",
+ tech_t="9. Caractéristiques techniques",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Canaux", "Mono ou stéréo"],
        ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 26 à 72 dB, + 0 à 20 dB de boost"],
        ["EQ", "graves 90 Hz + punch 120 Hz -15 / +18 dB, médiums 1 kHz ±12 dB, aigus 3 kHz -15 / +22 dB, bypassable"],
@@ -362,7 +362,7 @@ def section(lang):
     f.append(table(rows, [10 * mm, 29 * mm, 27 * mm, 27 * mm, 22 * mm, W - 115 * mm]))
     f.append(P(t["tips_t"], "h1")); f += bullets(t["tips"])
     f.append(KeepTogether([P(t["tech_t"], "h1"), table(t["tech"], [30 * mm, W - 30 * mm], header=False)])); f.append(Spacer(1, 4 * mm))
-    f.append(table([t["ver_h"]] + t["hist"], [22 * mm, W - 22 * mm], small=True))
+    # historique des versions retire de la notice (demande de l'utilisateur, v2.10.1)
     f.append(PageBreak())
     return f
 
