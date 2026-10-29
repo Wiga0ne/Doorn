@@ -1,5 +1,7 @@
 # DOORN (Studio Wiga) - notice PDF bilingue (anglais puis francais), illustree avec le rendu reel du plugin.
 # Usage : python3 tools/manual.py <dossier des captures (tools/render)> <fichier PDF de sortie>
+# Si le dossier ne contient pas les captures brutes (doorn_status.png...) mais les images deja composees
+# (doorn_annotated.png, doorn_modes.png, doorn_leds.png, doorn_bar.png, doorn_cover_cutout.png), elles sont reprises telles quelles.
 import os, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -16,7 +18,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = sys.argv[1]
 OUT = sys.argv[2]
-VERSION = "2.11.0"
+VERSION = "2.12.1"
 TMP = os.path.dirname(os.path.abspath(OUT))
 FONTS = os.path.join(ROOT, "assets", "fonts")
 
@@ -27,74 +29,79 @@ pdfmetrics.registerFont(TTFont("Title", os.path.join(ROOT, "assets", "AlegreyaSC
 ACC = colors.HexColor("#B08D52"); ACC_L = colors.HexColor("#D8B97E")      # or des fissures du visuel
 DARK = colors.HexColor("#161A26"); GREY = colors.HexColor("#646A78"); LIGHT = colors.HexColor("#F1ECE2")
 
-# ---------- capture annotee ----------
-src = Image.open(os.path.join(SHOTS, "doorn_status.png")).convert("RGB")
-k = src.height / 958.0
-import json
-LAY = json.load(open(os.path.join(ROOT, "tools", "layout.json")))
-_k = LAY["knobs"]
-marks = [  # (numero, x, y) dans le repere 760 x 958 du plugin (tools/layout.json)
-    (1, *_k["gain"]), (2, *LAY["mini"]), (3, *_k["level"]), (4, *_k["treble"]), (5, *_k["mids"]), (6, *_k["bass"]),
-    (7, *LAY["toggles"]["eq"]), (8, *LAY["toggles"]["mode"]), (9, *LAY["led"]), (10, *LAY["foot"]["boost"]), (11, *LAY["foot"]["bypass"]),
-    (12, 278, 620), (13, 240, 660), (14, 494, 14), (15, 270, 14)]
-ann = src.copy(); dr = ImageDraw.Draw(ann)
-fnt = ImageFont.truetype(os.path.join(FONTS, "Poppins-Bold.ttf"), 34)
-for n, x, y in marks:
-    ox = {1: -52, 2: 0, 3: 52, 4: -52, 5: 0, 6: 52, 7: -46, 8: 46, 9: 34, 10: -66, 11: 66, 12: -10, 13: -14, 14: 0, 15: 0}[n]
-    oy = {2: -36, 5: -56, 9: 0, 12: 0, 13: 0}.get(n, -40 if n in (1, 3, 4, 6) else 0)
-    cx, cy, r = (x + ox) * k, (y + oy) * k, 27
-    dr.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(255, 255, 255), outline=(176, 141, 82), width=5)
-    dr.text((cx, cy + 1), str(n), font=fnt, fill=(20, 26, 38), anchor="mm")
-annotated = os.path.join(TMP, "doorn_annotated.png"); ann.save(annotated)
+PREBUILT = not os.path.exists(os.path.join(SHOTS, "doorn_status.png"))
+if PREBUILT:
+    annotated, modes_img, leds_img, bar_img, cover = (os.path.join(SHOTS, "doorn_" + n + ".png")
+                                                      for n in ("annotated", "modes", "leds", "bar", "cover_cutout"))
+else:
+    # ---------- capture annotee ----------
+    src = Image.open(os.path.join(SHOTS, "doorn_status.png")).convert("RGB")
+    k = src.height / 958.0
+    import json
+    LAY = json.load(open(os.path.join(ROOT, "tools", "layout.json")))
+    _k = LAY["knobs"]
+    marks = [  # (numero, x, y) dans le repere 760 x 958 du plugin (tools/layout.json)
+        (1, *_k["gain"]), (2, *LAY["mini"]), (3, *_k["level"]), (4, *_k["treble"]), (5, *_k["mids"]), (6, *_k["bass"]),
+        (7, *LAY["toggles"]["eq"]), (8, *LAY["toggles"]["mode"]), (9, *LAY["led"]), (10, *LAY["foot"]["boost"]), (11, *LAY["foot"]["bypass"]),
+        (12, 278, 620), (13, 240, 660), (14, 494, 14), (15, 270, 14)]
+    ann = src.copy(); dr = ImageDraw.Draw(ann)
+    fnt = ImageFont.truetype(os.path.join(FONTS, "Poppins-Bold.ttf"), 34)
+    for n, x, y in marks:
+        ox = {1: -52, 2: 0, 3: 52, 4: -52, 5: 0, 6: 52, 7: -46, 8: 46, 9: 34, 10: -66, 11: 66, 12: -10, 13: -14, 14: 0, 15: 0}[n]
+        oy = {2: -36, 5: -56, 9: 0, 12: 0, 13: 0}.get(n, -40 if n in (1, 3, 4, 6) else 0)
+        cx, cy, r = (x + ox) * k, (y + oy) * k, 27
+        dr.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(255, 255, 255), outline=(176, 141, 82), width=5)
+        dr.text((cx, cy + 1), str(n), font=fnt, fill=(20, 26, 38), anchor="mm")
+    annotated = os.path.join(TMP, "doorn_annotated.png"); ann.save(annotated)
 
-# les 3 modes : gros plan sur l'inverseur MODE (SDT-2 / Laerm / SDT-1)
-def crop_u(path, box):
-    im = Image.open(os.path.join(SHOTS, path)).convert("RGB")
-    return im.crop(tuple(int(v * k) for v in box))
-modes = [crop_u(p, (440, 470, 610, 600)) for p in ("doorn_sdt2.png", "doorn_laerm.png", "doorn_status.png")]
-gap = 18
-mstrip = Image.new("RGB", (sum(m.width for m in modes) + gap * 2, modes[0].height), (255, 255, 255))
-x = 0
-for m in modes: mstrip.paste(m, (x, 0)); x += m.width + gap
-modes_img = os.path.join(TMP, "doorn_modes.png"); mstrip.save(modes_img)
+    # les 3 modes : gros plan sur l'inverseur MODE (SDT-2 / Laerm / SDT-1)
+    def crop_u(path, box):
+        im = Image.open(os.path.join(SHOTS, path)).convert("RGB")
+        return im.crop(tuple(int(v * k) for v in box))
+    modes = [crop_u(p, (440, 470, 610, 600)) for p in ("doorn_sdt2.png", "doorn_laerm.png", "doorn_status.png")]
+    gap = 18
+    mstrip = Image.new("RGB", (sum(m.width for m in modes) + gap * 2, modes[0].height), (255, 255, 255))
+    x = 0
+    for m in modes: mstrip.paste(m, (x, 0)); x += m.width + gap
+    modes_img = os.path.join(TMP, "doorn_modes.png"); mstrip.save(modes_img)
 
-# LED (effet actif / bypass) et potard BOOST transparent (eteint / eclaire quand le boost est enclenche)
-_m = LAY["mini"]; _l = LAY["led"]
-kb = (_m[0] - 82, _m[1] - 70, _m[0] + 82, _m[1] + 110)
-kl = (_l[0] - 82, _l[1] - 110, _l[0] + 82, _l[1] + 70)
-leds = [crop_u("doorn_bypass.png", kl), crop_u("doorn_boost.png", kl), crop_u("doorn_status.png", kb), crop_u("doorn_boost.png", kb)]
-lstrip = Image.new("RGB", (sum(m.width for m in leds) + gap * 3, leds[0].height), (255, 255, 255))
-x = 0
-for m in leds: lstrip.paste(m, (x, 0)); x += m.width + gap
-leds_img = os.path.join(TMP, "doorn_leds.png"); lstrip.save(leds_img)
+    # LED (effet actif / bypass) et potard BOOST transparent (eteint / eclaire quand le boost est enclenche)
+    _m = LAY["mini"]; _l = LAY["led"]
+    kb = (_m[0] - 82, _m[1] - 70, _m[0] + 82, _m[1] + 110)
+    kl = (_l[0] - 82, _l[1] - 110, _l[0] + 82, _l[1] + 70)
+    leds = [crop_u("doorn_bypass.png", kl), crop_u("doorn_boost.png", kl), crop_u("doorn_status.png", kb), crop_u("doorn_boost.png", kb)]
+    lstrip = Image.new("RGB", (sum(m.width for m in leds) + gap * 3, leds[0].height), (255, 255, 255))
+    x = 0
+    for m in leds: lstrip.paste(m, (x, 0)); x += m.width + gap
+    leds_img = os.path.join(TMP, "doorn_leds.png"); lstrip.save(leds_img)
 
-# barre de presets + ligne d'etat
-bar = crop_u("doorn_status.png", (220, 592, 540, 678))
-bar_img = os.path.join(TMP, "doorn_bar.png"); bar.save(bar_img)
+    # barre de presets + ligne d'etat
+    bar = crop_u("doorn_status.png", (220, 592, 540, 678))
+    bar_img = os.path.join(TMP, "doorn_bar.png"); bar.save(bar_img)
 
-# couverture : pedale detouree (silhouette tools/pedal_mask.png), reflet au sol, halo dore tres doux
-shot = Image.open(os.path.join(SHOTS, "doorn_laerm.png")).convert("RGB")
-msk = Image.open(os.path.join(ROOT, "tools", "pedal_mask.png")).convert("L").resize(shot.size, Image.LANCZOS)
-cut = Image.new("RGBA", shot.size, (0, 0, 0, 0)); cut.paste(shot, (0, 0), msk)
-cut = cut.crop(cut.getbbox())
-cw, ch = cut.size
-pad = int(cw * 0.16)
-canvas = Image.new("RGBA", (cw + 2 * pad, int(ch * 1.30) + pad), (0, 0, 0, 255))
-yy, xx = np.mgrid[0:canvas.height, 0:canvas.width].astype(np.float64)
-gcx, gcy = canvas.width / 2, pad + ch * 0.45
-glow = np.exp(-(((xx - gcx) / (cw * 0.62)) ** 2 + ((yy - gcy) / (ch * 0.48)) ** 2)) * 34
-edge = np.clip(np.minimum.reduce([xx, canvas.width - 1 - xx, yy, canvas.height - 1 - yy]) / (pad * 0.9), 0, 1)
-glow *= edge ** 2
-halo = np.dstack([glow * 0.92, glow * 0.74, glow * 0.45, np.full_like(glow, 255)]).astype(np.uint8)
-canvas = Image.alpha_composite(canvas, Image.fromarray(halo, "RGBA"))
-refl = cut.transpose(Image.FLIP_TOP_BOTTOM)
-ra = np.array(refl).astype(np.float64)
-fade = np.clip(1 - np.arange(refl.height) / (refl.height * 0.22), 0, 1) ** 1.6 * 0.22
-ra[..., 3] *= fade[:, None]
-canvas.alpha_composite(Image.fromarray(ra.astype(np.uint8), "RGBA"), (pad, pad + ch + 6))
-canvas.alpha_composite(cut, (pad, pad))
-canvas = canvas.crop((0, 0, canvas.width, pad + int(ch * 1.20)))
-cover = os.path.join(TMP, "doorn_cover_cutout.png"); canvas.convert("RGB").save(cover)
+    # couverture : pedale detouree (silhouette tools/pedal_mask.png), reflet au sol, halo dore tres doux
+    shot = Image.open(os.path.join(SHOTS, "doorn_laerm.png")).convert("RGB")
+    msk = Image.open(os.path.join(ROOT, "tools", "pedal_mask.png")).convert("L").resize(shot.size, Image.LANCZOS)
+    cut = Image.new("RGBA", shot.size, (0, 0, 0, 0)); cut.paste(shot, (0, 0), msk)
+    cut = cut.crop(cut.getbbox())
+    cw, ch = cut.size
+    pad = int(cw * 0.16)
+    canvas = Image.new("RGBA", (cw + 2 * pad, int(ch * 1.30) + pad), (0, 0, 0, 255))
+    yy, xx = np.mgrid[0:canvas.height, 0:canvas.width].astype(np.float64)
+    gcx, gcy = canvas.width / 2, pad + ch * 0.45
+    glow = np.exp(-(((xx - gcx) / (cw * 0.62)) ** 2 + ((yy - gcy) / (ch * 0.48)) ** 2)) * 34
+    edge = np.clip(np.minimum.reduce([xx, canvas.width - 1 - xx, yy, canvas.height - 1 - yy]) / (pad * 0.9), 0, 1)
+    glow *= edge ** 2
+    halo = np.dstack([glow * 0.92, glow * 0.74, glow * 0.45, np.full_like(glow, 255)]).astype(np.uint8)
+    canvas = Image.alpha_composite(canvas, Image.fromarray(halo, "RGBA"))
+    refl = cut.transpose(Image.FLIP_TOP_BOTTOM)
+    ra = np.array(refl).astype(np.float64)
+    fade = np.clip(1 - np.arange(refl.height) / (refl.height * 0.22), 0, 1) ** 1.6 * 0.22
+    ra[..., 3] *= fade[:, None]
+    canvas.alpha_composite(Image.fromarray(ra.astype(np.uint8), "RGBA"), (pad, pad + ch + 6))
+    canvas.alpha_composite(cut, (pad, pad))
+    canvas = canvas.crop((0, 0, canvas.width, pad + int(ch * 1.20)))
+    cover = os.path.join(TMP, "doorn_cover_cutout.png"); canvas.convert("RGB").save(cover)
 
 def img(path, width):
     im = Image.open(path); h = width * im.height / im.width
@@ -183,7 +190,7 @@ T = {
        ("Reaper", "Options &gt; Preferences &gt; Plug-ins &gt; VST &gt; <b>Re-scan</b>. The plugin appears as <b>Doorn (Studio Wiga)</b>. To control it from your MIDI footswitches and expression pedals, the track must receive MIDI from the controller (record-arm or input monitoring, MIDI input set to your device, e.g. the M-Vave Chocolate Plus).")],
  ov_t="3. Interface overview",
  ov_rows=[["#", "Control", "Role"],
-   ["1", "GAIN", "Amount of distortion. Drag up / down, mouse wheel, double-click = noon."],
+   ["1", "GAIN", "Amount of distortion. Drag up / down, mouse wheel, double-click = noon, right-click = MIDI Learn (true for every control)."],
    ["2", "BOOST (small knob)", "Level of the boost, from 0 to +20 dB. Only heard when the BOOST footswitch is on: the transparent knob then lights up from inside and its cursor shows clearly."],
    ["3", "LEVEL", "Output volume."],
    ["4", "TREBLE", "Treble shelf at 4 kHz, gentle around noon like the Thorn, -5 / +16 dB at the ends; flat at noon."],
@@ -206,47 +213,49 @@ T = {
       ("EQ off / on", "With the switch up (off), the EQ is completely lifted out of the signal path, as on the Thorn: the three EQ knobs then have no effect and the raw voice of the circuit goes straight to the amp (Lennart's setting into an Ampeg V4). The change is crossfaded, without any click."),
       ("Modes", "<b>SDT-1</b> (down): the original Stampede, silicon diodes to ground, singing mids. <b>Laerm</b> (centre): Lichtlaerm's own voicing, higher clipping threshold (LED-like), wider bandwidth, more open, more direct and louder (about +4 dB). <b>SDT-2</b> (up): an extra compression stage, more saturated and darker, slightly quieter (about −3 dB), the tones of Living Gate. Changing mode crossfades in a few milliseconds.")],
  modes_cap="The mode switch on SDT-2 (lever up), Laerm (centre) and SDT-1 (lever down).",
- fs_t="5. Footswitches, LED and MIDI",
+ fs_t="5. Footswitches, LED and noise gate",
  fs=["<b>Footswitches</b>: same footswitch and behaviour as Echoflex. They switch as soon as you press them and the cap darkens while held. <b>Smart relay</b> (as on the Thorn): if you hold a footswitch for more than 0.45 s after turning something on, it works as a momentary switch and turns off when you release it. Right-click &gt; <b>Settings</b> to disable this.",
      "<b>LED</b>: red when the effect is on, off in bypass, with a fade-in / fade-out and the panel really lit around it. <b>Boost</b>: when the boost is engaged, the transparent BOOST knob lights up from inside (warm light, the panel around it catches a little of it) and its cursor becomes clearly visible; boost off, the cursor stays dark under the smoked cap.",
      "<b>Bypass</b>: true bypass sound (the dry signal is passed through, time-aligned with the oversampling latency reported to the DAW).",
-     "<b>Expression pedals</b>: every knob can be driven by a MIDI CC (table below). Movements are never stepped: Doorn measures the time between two messages from your pedal and ramps to each new value over that time; 14-bit pedals are supported, and the real travel of your pedal is learnt automatically, so a pedal that only sends 2 to 116 still reaches exactly 0 and 100 %.",
-     "<b>MIDI footswitches</b>: latching (127 = on / 0 = off, default) or momentary (toggle on each press), right-click &gt; Settings. All parameters can also be automated and MIDI-learnt in the DAW.",
-     "<b>Noise gate</b> (right-click &gt; Noise gate): silences hiss and hum as soon as you stop playing, opens instantly on the next note (no attack is ever cut) and lets notes fade smoothly. Off, Light, <b>Medium</b> (default) or Strong (noisy pickups). Acts on the effect only"],
+     "<b>Noise gate</b> (right-click &gt; Noise gate): silences hiss and hum as soon as you stop playing, opens instantly on the next note (no attack is ever cut) and lets notes fade smoothly. Off, Light, <b>Medium</b> (default) or Strong (noisy pickups). Acts on the effect only."],
  led_cap="LED in bypass and with the effect on; BOOST knob with the boost off and on (lit, cursor visible).",
- midi_hdr=["Message", "Function"],
- midi=[["CC 20 / 21 / 22", "Gain / Boost level / Level"], ["CC 23 / 24 / 25", "Treble / Mids / Bass"],
-       ["CC 52 to 57", "Fine (14-bit) part of CC 20 to 25"], ["CC 26", "EQ (64 or more = on)"],
-       ["CC 27", "Mode (0-42 SDT-2, 43-84 Laerm, 85-127 SDT-1)"], ["CC 28", "BOOST footswitch"], ["CC 29", "BYPASS footswitch"],
-       ["Program Change 1-13", "Factory presets"]],
- win_t="6. Window",
- win=["Doorn uses the single pedal format of Echoflex: the window opens at its default size, <b>391 x 493 pixels</b>, and can never be made smaller than that. Drag the bottom-right corner to enlarge it up to 150 % (proportions are kept), or right-click &gt; <b>Window size</b>: Default, 75 %, 100 %.",
-      "The <b>status line</b> shows only the setting of the knob, switch or footswitch you just moved (knobs in %, e.g. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), in large, clear lettering; it appears when a setting moves and fades out after 2.5 s. The <b>preset bar</b> under it always shows the current preset, mode and boost / bypass state."],
+ midi_t="6. MIDI",
+ midi_intro=["Every control of the front panel can be driven from a MIDI controller (footswitches, expression pedals, knobs), for example an M-Vave Chocolate Plus. Doorn listens on all MIDI channels. The default numbers are those of the earlier versions (CC 20 to 29), so existing pedalboards keep working; any of them can be changed with <b>MIDI Learn</b>."],
+ midi_hdr=["Control", "Default CC", "Type"],
+ midi=[["Gain", "CC 20", "Continuous (0-127 = full travel)"], ["Boost (level knob)", "CC 21", "Continuous"], ["Level", "CC 22", "Continuous"],
+       ["Treble", "CC 23", "Continuous"], ["Mids", "CC 24", "Continuous"], ["Bass", "CC 25", "Continuous"],
+       ["EQ", "CC 26", "Switch: 64 or more = on, below 64 = off"],
+       ["Mode", "CC 27", "3-position selector: 0-42 SDT-2, 43-84 Laerm, 85-127 SDT-1"],
+       ["Boost footswitch", "CC 28", "Footswitch, latching (127 = on / 0 = off) or momentary (toggle on each press)"],
+       ["Bypass", "CC 29", "Footswitch, latching or momentary (same setting)"]],
+ learn_h="MIDI Learn",
+ learn=["<b>Right-click a control</b> (knob, switch or footswitch): the menu starts with <b>MIDI Learn: &lt;name&gt; (CC n)</b>, which also shows the current number (or a dash when the control is not assigned). Choose it, then move the expression pedal or press the MIDI button you want to use. While Doorn waits, the status line reads <b>MIDI LEARN: move a control for Gain</b>; the first CC received is assigned to the control (it does not change the sound) and the status line confirms it for 2 seconds, e.g. <b>Gain = CC 64</b>.",
+        "If that CC number was already used by another control, the other control is unassigned, so one CC never drives two controls by accident. <b>Clear MIDI: &lt;name&gt;</b> removes the assignment of the control; <b>Cancel MIDI learn</b> (shown while Doorn is waiting) stops the learn without changing anything.",
+        "<b>Right-click anywhere else &gt; MIDI</b>: the list of all ten controls with their current CC (<b>Learn: Gain (CC 20)</b>, ...; choose one to learn it), <b>Cancel MIDI learn</b> and <b>Reset MIDI to defaults (CC 20-29)</b>.",
+        "The assignments are <b>saved with your project</b> (and with the DAW preset). A project made with an earlier version opens with the default numbers. CC 0 to 119 can be learnt (120 to 127 are channel mode messages)."],
+ midi_more_h="Expression pedals, footswitches and program changes",
+ midi_more=["<b>Expression pedals</b>: movements are never stepped. Doorn measures the time between two messages from your pedal and ramps to each new value over that time; the real travel of your pedal is learnt automatically, so a pedal that only sends 2 to 116 still reaches exactly 0 and 100 %. For a knob assigned to CC 0 to 31, CC n+32 is read as its fine (14-bit) part if your pedal sends it (CC 52 to 57 with the defaults).",
+            "<b>MIDI footswitches</b>: latching (127 = on / 0 = off, default) or momentary (toggle on each press), right-click &gt; Settings. This applies to both footswitches, whatever CC they are learnt on.",
+            "<b>Program Change 1 to 13</b> recall the factory presets. All parameters can also be automated in the DAW."],
+ win_t="7. Window",
+ win=["Doorn uses the single pedal format of Echoflex: the window opens at its default size and can never be made smaller than that. Right-click &gt; <b>Window size</b>: <b>60 % (default)</b>, <b>75 %</b> or <b>100 %</b>; you can also drag the bottom-right corner to enlarge it up to 150 % (proportions are kept).",
+      "The <b>status line</b> shows only the setting of the knob, switch or footswitch you just moved (knobs in %, e.g. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), in large, clear lettering; it appears when a setting moves and fades out after 2.5 s. It also shows the MIDI Learn messages. The <b>preset bar</b> under it always shows the current preset, mode and boost / bypass state."],
  bar_cap="Status line (the control you just moved) and preset bar.",
- pre_t="7. Presets",
+ pre_t="8. Presets",
  pre=["Use the arrows of the preset bar, click its name, right-click anywhere, or use the preset menu of your DAW. Right-click &gt; <b>Save user preset</b> stores up to 9 presets of your own."],
  fac_hdr=["PC", "Preset", "Gain / Boost / Level", "Treble / Mids / Bass", "EQ · Mode", "Description"],
- tips_t="8. Tips",
+ tips_t="9. Tips",
  tips=["In Reaper place Doorn <b>before</b> your amp simulator (for example before Two Notes Genome) with a fairly clean amp, as you would with the real pedal. With a crunch amp, lower the gain: the Stampede already has a lot.",
        "For low tunings (B standard like Amenra, or a 7-string in G and lower), keep BASS around noon to 1 o'clock and use the BOOST: it tightens the low end without losing weight.",
        "The original reviewer's favourite modes are SDT-1 and Laerm; SDT-2 is perfect for long, saturated chords.",
        "If some hiss remains when you stop playing, set right-click &gt; Noise gate to Strong; for very tight stops on staccato riffs, NGATE from Studio Wiga can still be added after Doorn."],
- tech_t="9. Specifications",
+ tech_t="10. Specifications",
  tech=[["Format", "VST3 (Windows 64-bit, macOS universal)"], ["Channels", "Mono or stereo"],
        ["Latency", "32 samples (oversampling filter), reported to the DAW"], ["Gain", "about 26 to 72 dB, + 0 to 20 dB boost"],
        ["EQ", "bass 90 Hz + 120 Hz punch -15 / +18 dB, mids 750 Hz ±5 dB, treble 4 kHz -5 / +16 dB, bypassable"],
-       ["Processing", "4x oversampling, smoothed parameters, no denormals"], ["CPU", "about 4 % of one core at 48 kHz (stereo)"]],
- hist=[["1.0.0", "First version: Thorn / Stampede SDT-1 model with SDT-1, SDT-2 and Laerm voicings, additive boost, bypassable 3-band EQ, smart relay footswitches, MIDI and expression pedals, 10 factory presets and 9 user presets, Echoflex single pedal format"],
-       ["1.0.1 - 1.4.0", "Status line limited to the control you move, anti-freeze, tighter sound, bigger pedal, red-only LED with lit BOOST knob, sound matched on a recording of the real Thorn, readable status font"],
-       ["1.5.0 - 1.9.0", "More gain and bite without the boost, tight low end (bass kept out of the clipping and given back after it), output that follows your picking, BASS with punch, clearly audible boost"],
-       ["2.0.0 - 2.3.0", "Stoner grain and fat: parallel Big Muff-style fuzz layer blended with the distortion (now about 40 % fuzz / 60 % distortion), body bump around 220 Hz, stoner mid / high-mid voice (push around 900 Hz and 2.3 kHz, no longer muffled), low end and low-mids back with presence, headroom kept so nothing gets squashed"],
-       ["2.4.0 - 2.5.0", "TREBLE up to +21 dB and BASS up to +18 dB with smooth, natural travel; stronger anti-freeze, JUCE 8.0.15"],
-       ["2.6.0", "Built-in noise gate (right-click &gt; Noise gate: Off / Light / Medium / Strong, Medium by default): no more hiss or hum when you stop playing, attacks never cut, notes fade naturally"],
-       ["2.7.0", "Clearer, more defined sound on every preset, less nasal mids; presets with TREBLE at max lowered"],
-       ["2.8.0", "No more whistle after the pick attack: highs limited before the clipping, definition moved to about 3.2 kHz where the harmonics stay clean, no more air boost at 6 kHz"],
-       ["2.9.0", "A little less fuzz: the fuzz layer now makes about 40 % of the sound and the diode distortion about 60 % (was about 50 / 50), same level"],
-       ["2.10.0", "Bigger, more readable status line and preset bar (larger text, darker background)"]],
- ver_h=["Version", "Changes"]),
+       ["Processing", "4x oversampling, smoothed parameters, no denormals"], ["CPU", "about 4 % of one core at 48 kHz (stereo)"],
+       ["MIDI", "all channels; MIDI Learn on the 10 controls (defaults CC 20-29), 14-bit CC, Program Change 1-13; assignments saved with the project"],
+       ["Window", "60 % (default) / 75 % / 100 %, up to 150 %, never smaller than the default size; anti-freeze v2 under Windows (software rendering, watchdog, no host call from the audio thread)"]],),
 "fr": dict(
  lang="FRANÇAIS", sub="Distorsion high gain &nbsp;·&nbsp; VST3 pour Windows et macOS", ver="Notice d'utilisation &nbsp;·&nbsp; version " + VERSION,
  intro_t="1. Présentation",
@@ -259,7 +268,7 @@ T = {
        ("Reaper", "Options &gt; Préférences &gt; Plug-ins &gt; VST &gt; <b>Re-scan</b>. Le plugin apparaît sous le nom <b>Doorn (Studio Wiga)</b>. Pour le piloter avec vos footswitchs et pédales d'expression MIDI, la piste doit recevoir le MIDI du contrôleur (armement ou monitoring d'entrée, entrée MIDI réglée sur votre appareil, par exemple la M-Vave Chocolate Plus).")],
  ov_t="3. Vue d'ensemble de l'interface",
  ov_rows=[["#", "Commande", "Rôle"],
-   ["1", "GAIN", "Quantité de distorsion. Glisser vers le haut / le bas, molette, double-clic = midi."],
+   ["1", "GAIN", "Quantité de distorsion. Glisser vers le haut / le bas, molette, double-clic = midi, clic droit = MIDI Learn (valable pour toutes les commandes)."],
    ["2", "BOOST (petit potard)", "Niveau du boost, de 0 à +20 dB. Ne s'entend que si le footswitch BOOST est enclenché : le potard transparent s'éclaire alors de l'intérieur et son curseur apparaît nettement."],
    ["3", "LEVEL", "Volume de sortie."],
    ["4", "TREBLE", "Plateau d'aigus à 4 kHz, doux autour de midi comme sur la Thorn, -5 / +16 dB aux butées ; plat à midi."],
@@ -282,47 +291,49 @@ T = {
       ("EQ off / on", "Inverseur en haut (off) : l'EQ est entièrement retiré du trajet du signal, comme sur la Thorn ; les trois potards d'EQ n'ont alors plus d'effet et la voix brute du circuit part directement dans l'ampli (le réglage de Lennart dans un Ampeg V4). Le changement se fait en fondu, sans aucun clic."),
       ("Modes", "<b>SDT-1</b> (en bas) : la Stampede d'origine, diodes silicium à la masse, médiums qui chantent. <b>Laerm</b> (au centre) : la voix propre à Lichtlaerm, seuil d'écrêtage plus haut (type LED), bande passante plus large, plus ouverte, plus directe et plus forte (environ +4 dB). <b>SDT-2</b> (en haut) : un étage de compression en plus, plus saturée et plus sombre, un peu moins forte (environ −3 dB), les sons de Living Gate. Le changement de mode se fait en fondu en quelques millisecondes.")],
  modes_cap="L'inverseur de mode sur SDT-2 (levier en haut), Laerm (au centre) et SDT-1 (levier en bas).",
- fs_t="5. Footswitchs, LED et MIDI",
+ fs_t="5. Footswitchs, LED et noise gate",
  fs=["<b>Footswitchs</b> : même footswitch et même fonctionnement qu'Echoflex. Ils basculent dès l'appui et le bouton s'assombrit tant qu'on appuie. <b>Smart relay</b> (comme sur la Thorn) : si vous maintenez un footswitch plus de 0,45 s après avoir enclenché quelque chose, il fonctionne en momentané et se coupe quand vous relâchez. Clic droit &gt; <b>Settings</b> pour désactiver ce comportement.",
      "<b>LED</b> : rouge quand l'effet est actif, éteinte en bypass, avec allumage / extinction en fondu et la façade réellement éclairée autour. <b>Boost</b> : quand le boost est enclenché, le potard BOOST transparent s'éclaire de l'intérieur (lumière chaude, la façade autour en reçoit un peu) et son curseur devient bien visible ; boost coupé, le curseur reste sombre sous le chapeau fumé.",
      "<b>Bypass</b> : son direct (le signal sec passe, aligné dans le temps sur la latence du sur-échantillonnage annoncée au DAW).",
-     "<b>Pédales d'expression</b> : chaque potard peut être piloté par un CC MIDI (tableau ci-dessous). Les mouvements ne sont jamais saccadés : Doorn mesure le temps entre deux messages de votre pédale et rejoint chaque nouvelle valeur par une rampe pendant ce temps ; les pédales 14 bits sont prises en charge et la course réelle de votre pédale est apprise automatiquement : une pédale qui n'envoie que 2 à 116 atteint quand même exactement 0 et 100 %.",
-     "<b>Footswitchs MIDI</b> : à accrochage (127 = on / 0 = off, par défaut) ou momentanés (bascule à chaque appui), clic droit &gt; Settings. Tous les paramètres sont aussi automatisables et assignables en MIDI learn dans le DAW.",
-     "<b>Noise gate</b> (clic droit &gt; Noise gate) : coupe le souffle et le ronflement dès qu'on arrête de jouer, s'ouvre instantanément à la note suivante (aucune attaque coupée), laisse les notes s'éteindre en douceur. Off, Light, <b>Medium</b> (par défaut) ou Strong (micros bruyants). N'agit que sur l'effet"],
+     "<b>Noise gate</b> (clic droit &gt; Noise gate) : coupe le souffle et le ronflement dès qu'on arrête de jouer, s'ouvre instantanément à la note suivante (aucune attaque coupée), laisse les notes s'éteindre en douceur. Off, Light, <b>Medium</b> (par défaut) ou Strong (micros bruyants). N'agit que sur l'effet."],
  led_cap="LED en bypass et effet actif ; potard BOOST boost coupé et enclenché (éclairé, curseur visible).",
- midi_hdr=["Message", "Fonction"],
- midi=[["CC 20 / 21 / 22", "Gain / niveau du Boost / Level"], ["CC 23 / 24 / 25", "Treble / Mids / Bass"],
-       ["CC 52 à 57", "Partie fine (14 bits) des CC 20 à 25"], ["CC 26", "EQ (64 ou plus = on)"],
-       ["CC 27", "Mode (0-42 SDT-2, 43-84 Laerm, 85-127 SDT-1)"], ["CC 28", "Footswitch BOOST"], ["CC 29", "Footswitch BYPASS"],
-       ["Program Change 1-13", "Presets usine"]],
- win_t="6. Fenêtre",
- win=["Doorn utilise le format pédale simple d'Echoflex : la fenêtre s'ouvre à sa taille par défaut, <b>391 x 493 pixels</b>, et ne peut jamais être réduite en dessous. Tirez le coin en bas à droite pour l'agrandir jusqu'à 150 % (les proportions sont conservées), ou clic droit &gt; <b>Window size</b> : Default, 75 %, 100 %.",
-      "La <b>ligne d'état</b> affiche seulement le réglage du potard, de l'inverseur ou du footswitch que vous venez de bouger (potards en %, par ex. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), en grands caractères bien lisibles ; elle apparaît quand un réglage bouge et s'efface au bout de 2,5 s. La <b>barre de presets</b> en dessous affiche en permanence le preset, le mode et l'état boost / bypass."],
+ midi_t="6. MIDI",
+ midi_intro=["Toutes les commandes de la façade se pilotent depuis un contrôleur MIDI (footswitchs, pédales d'expression, potards), par exemple un M-Vave Chocolate Plus. Doorn écoute tous les canaux MIDI. Les numéros par défaut sont ceux des versions précédentes (CC 20 à 29) : les pédaliers déjà réglés continuent de fonctionner, et chacun peut être changé avec le <b>MIDI Learn</b>."],
+ midi_hdr=["Commande", "CC par défaut", "Type"],
+ midi=[["Gain", "CC 20", "Continu (0-127 = toute la course)"], ["Boost (potard de niveau)", "CC 21", "Continu"], ["Level", "CC 22", "Continu"],
+       ["Treble", "CC 23", "Continu"], ["Mids", "CC 24", "Continu"], ["Bass", "CC 25", "Continu"],
+       ["EQ", "CC 26", "Bascule : 64 ou plus = on, moins de 64 = off"],
+       ["Mode", "CC 27", "Sélecteur 3 positions : 0-42 SDT-2, 43-84 Laerm, 85-127 SDT-1"],
+       ["Footswitch Boost", "CC 28", "Footswitch, à accrochage (127 = on / 0 = off) ou momentané (bascule à chaque appui)"],
+       ["Bypass", "CC 29", "Footswitch, à accrochage ou momentané (même réglage)"]],
+ learn_h="MIDI Learn",
+ learn=["<b>Clic droit sur une commande</b> (potard, inverseur ou footswitch) : le menu commence par <b>MIDI Learn: &lt;nom&gt; (CC n)</b>, qui indique aussi le numéro actuel (ou un tiret si la commande n'est pas assignée). Choisissez-le, puis bougez la pédale d'expression ou appuyez sur le bouton MIDI à utiliser. Pendant l'attente, la ligne d'état affiche <b>MIDI LEARN: move a control for Gain</b> ; le premier CC reçu est affecté à la commande (il ne change pas le son) et la ligne d'état le confirme pendant 2 secondes, par ex. <b>Gain = CC 64</b>.",
+        "Si ce numéro de CC servait déjà à une autre commande, celle-ci est désassignée : un même CC ne pilote jamais deux commandes par erreur. <b>Clear MIDI: &lt;nom&gt;</b> retire l'assignation de la commande ; <b>Cancel MIDI learn</b> (affiché pendant l'attente) annule l'apprentissage sans rien changer.",
+        "<b>Clic droit ailleurs &gt; MIDI</b> : la liste des dix commandes avec leur CC actuel (<b>Learn: Gain (CC 20)</b>, ... ; en choisir une lance son apprentissage), <b>Cancel MIDI learn</b> et <b>Reset MIDI to defaults (CC 20-29)</b>.",
+        "Les assignations sont <b>sauvegardées avec le projet</b> (et avec le preset du DAW). Un projet fait avec une version précédente s'ouvre avec les numéros par défaut. Les CC 0 à 119 peuvent être appris (120 à 127 sont des messages de mode de canal)."],
+ midi_more_h="Pédales d'expression, footswitchs et Program Change",
+ midi_more=["<b>Pédales d'expression</b> : les mouvements ne sont jamais saccadés. Doorn mesure le temps entre deux messages de votre pédale et rejoint chaque nouvelle valeur par une rampe pendant ce temps ; la course réelle de votre pédale est apprise automatiquement : une pédale qui n'envoie que 2 à 116 atteint quand même exactement 0 et 100 %. Pour un potard assigné à un CC de 0 à 31, le CC n+32 est lu comme sa partie fine (14 bits) si la pédale l'envoie (CC 52 à 57 avec les numéros par défaut).",
+            "<b>Footswitchs MIDI</b> : à accrochage (127 = on / 0 = off, par défaut) ou momentanés (bascule à chaque appui), clic droit &gt; Settings. Le réglage vaut pour les deux footswitchs, quel que soit le CC appris.",
+            "<b>Program Change 1 à 13</b> : rappel des presets usine. Tous les paramètres sont aussi automatisables dans le DAW."],
+ win_t="7. Fenêtre",
+ win=["Doorn utilise le format pédale simple d'Echoflex : la fenêtre s'ouvre à sa taille par défaut et ne peut jamais être réduite en dessous. Clic droit &gt; <b>Window size</b> : <b>60 % (default)</b>, <b>75 %</b> ou <b>100 %</b> ; vous pouvez aussi tirer le coin en bas à droite pour l'agrandir jusqu'à 150 % (les proportions sont conservées).",
+      "La <b>ligne d'état</b> affiche seulement le réglage du potard, de l'inverseur ou du footswitch que vous venez de bouger (potards en %, par ex. <i>gain 76 %</i>, <i>eq off</i>, <i>laerm</i>, <i>boost on</i>), en grands caractères bien lisibles ; elle apparaît quand un réglage bouge et s'efface au bout de 2,5 s. Elle affiche aussi les messages du MIDI Learn. La <b>barre de presets</b> en dessous affiche en permanence le preset, le mode et l'état boost / bypass."],
  bar_cap="Ligne d'état (la commande que vous venez de bouger) et barre de presets.",
- pre_t="7. Presets",
+ pre_t="8. Presets",
  pre=["Utilisez les flèches de la barre de presets, cliquez sur son nom, faites un clic droit n'importe où, ou passez par le menu de presets de votre DAW. Clic droit &gt; <b>Save user preset</b> enregistre jusqu'à 9 presets personnels."],
  fac_hdr=["PC", "Preset", "Gain / Boost / Level", "Treble / Mids / Bass", "EQ · Mode", "Description"],
- tips_t="8. Conseils d'utilisation",
+ tips_t="9. Conseils d'utilisation",
  tips=["Dans Reaper, placez Doorn <b>avant</b> votre simulateur d'ampli (par exemple avant Two Notes Genome) avec un ampli assez clair, comme avec la vraie pédale. Avec un ampli crunch, baissez le gain : la Stampede en a déjà beaucoup.",
        "Pour les accordages bas (Si standard comme Amenra, ou une 7 cordes en Sol et plus bas), gardez BASS entre midi et 13 h et servez-vous du BOOST : il resserre le grave sans perdre de poids.",
        "Les modes préférés du testeur d'origine sont SDT-1 et Laerm ; SDT-2 est parfait pour les longs accords saturés.",
        "S'il reste du souffle quand vous arrêtez de jouer, passez clic droit &gt; Noise gate sur Strong ; pour des arrêts très secs sur les riffs saccadés, NGATE de Studio Wiga peut toujours être ajouté après Doorn."],
- tech_t="9. Caractéristiques techniques",
+ tech_t="10. Caractéristiques techniques",
  tech=[["Format", "VST3 (Windows 64 bits, macOS universel)"], ["Canaux", "Mono ou stéréo"],
        ["Latence", "32 échantillons (filtre de sur-échantillonnage), annoncée au DAW"], ["Gain", "environ 26 à 72 dB, + 0 à 20 dB de boost"],
        ["EQ", "graves 90 Hz + punch 120 Hz -15 / +18 dB, médiums 750 Hz ±5 dB, aigus 4 kHz -5 / +16 dB, bypassable"],
-       ["Traitement", "sur-échantillonnage x4, paramètres lissés, pas de dénormaux"], ["Processeur", "environ 4 % d'un cœur à 48 kHz (stéréo)"]],
- hist=[["1.0.0", "Première version : modèle Thorn / Stampede SDT-1 avec les voix SDT-1, SDT-2 et Laerm, boost additif, EQ 3 bandes bypassable, footswitchs smart relay, MIDI et pédales d'expression, 10 presets usine et 9 presets utilisateur, format pédale simple d'Echoflex"],
-       ["1.0.1 - 1.4.0", "Ligne d'état limitée à la commande que l'on bouge, anti-gel, son plus serré, pédale agrandie, LED rouge seule et potard BOOST éclairé, son calé sur un enregistrement de la vraie Thorn, police de ligne d'état lisible"],
-       ["1.5.0 - 1.9.0", "Plus de gain et de mordant sans boost, grave serré (tenu à l'écart de l'écrêtage puis rendu après), sortie qui suit le jeu, BASS avec du punch, boost bien audible"],
-       ["2.0.0 - 2.3.0", "Grain et gras stoner : couche fuzz en parallèle façon Big Muff mêlée à la distorsion (aujourd'hui environ 40 % fuzz / 60 % distorsion), bosse de corps vers 220 Hz, voix stoner médium / médium-aigu (poussée vers 900 Hz et 2,3 kHz, fini le son sourd), grave et bas-médiums de retour avec de la présence, marge gardée pour ne rien écraser"],
-       ["2.4.0 - 2.5.0", "TREBLE jusqu'à +21 dB et BASS jusqu'à +18 dB avec des courses douces et naturelles ; anti-gel renforcé, JUCE 8.0.15"],
-       ["2.6.0", "Noise gate intégré (clic droit &gt; Noise gate : Off / Light / Medium / Strong, Medium par défaut) : plus de souffle ni de ronflement quand on arrête de jouer, attaques jamais coupées, notes qui s'éteignent naturellement"],
-       ["2.7.0", "Son plus clair et plus défini sur tous les presets, médiums moins nasaux ; presets avec TREBLE au maximum baissés"],
-       ["2.8.0", "Fini le sifflement après l'attaque : aigus limités avant l'écrêtage, définition placée vers 3,2 kHz où les harmoniques restent nettes, plus d'accent d'air à 6 kHz"],
-       ["2.9.0", "Un peu moins de fuzz : la couche fuzz fait maintenant environ 40 % du son et la distorsion à diodes environ 60 % (avant environ 50 / 50), même niveau"],
-       ["2.10.0", "Ligne d'état et barre de presets plus grandes et plus lisibles (texte agrandi, fond plus sombre)"]],
- ver_h=["Version", "Changements"]),
+       ["Traitement", "sur-échantillonnage x4, paramètres lissés, pas de dénormaux"], ["Processeur", "environ 4 % d'un cœur à 48 kHz (stéréo)"],
+       ["MIDI", "tous les canaux ; MIDI Learn sur les 10 commandes (CC 20-29 par défaut), CC 14 bits, Program Change 1-13 ; assignations sauvegardées avec le projet"],
+       ["Fenêtre", "60 % (default) / 75 % / 100 %, jusqu'à 150 %, jamais plus petite que la taille par défaut ; anti-gel v2 sous Windows (rendu logiciel, chien de garde, aucun appel à l'hôte depuis le thread audio)"]],),
 }
 
 W = A4[0] - 36 * mm
@@ -356,8 +367,10 @@ def section(lang):
     f.append(KeepTogether([Spacer(1, 3 * mm), img(modes_img, W * 0.50), P(t["modes_cap"], "small")]))
     f.append(P(t["fs_t"], "h1")); f += bullets(t["fs"])
     f.append(KeepTogether([Spacer(1, 2 * mm), img(leds_img, W * 0.60), P(t["led_cap"], "small")]))
-    f.append(Spacer(1, 3 * mm))
-    f.append(KeepTogether([table([t["midi_hdr"]] + t["midi"], [42 * mm, W - 42 * mm])]))
+    f.append(P(t["midi_t"], "h1")); f += [P(x) for x in t["midi_intro"]]
+    f.append(KeepTogether([table([t["midi_hdr"]] + t["midi"], [42 * mm, 26 * mm, W - 68 * mm])]))
+    f.append(P(t["learn_h"], "h2")); f += bullets(t["learn"])
+    f.append(P(t["midi_more_h"], "h2")); f += bullets(t["midi_more"])
     f.append(P(t["win_t"], "h1")); f.append(P(t["win"][0]))
     wt = Table([[[P(t["win"][1])], [img(bar_img, 62 * mm), P(t["bar_cap"], "small")]]], colWidths=[W - 66 * mm, 66 * mm])
     wt.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (0, 0), 0)]))
