@@ -39,7 +39,7 @@ juce_add_plugin(Doorn
   FORMATS VST3
   VST3_CATEGORIES Fx Distortion
   PRODUCT_NAME "Doorn"
-  VERSION 2.12.0
+  VERSION 2.12.1
   DESCRIPTION "High gain distortion (Thorn / Stampede SDT-1 style) - single pedal format"
   IS_SYNTH FALSE
   NEEDS_MIDI_INPUT TRUE
