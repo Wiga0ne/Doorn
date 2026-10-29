@@ -239,7 +239,13 @@ DoornAudioProcessorEditor::DoornAudioProcessorEditor (DoornAudioProcessor& p)
     // police lisible et standard (sans empattement) pour la ligne d'etat et la barre de presets
     labelFace = Typeface::createSystemTypefaceFor (BinaryData::PoppinsMedium_ttf, BinaryData::PoppinsMedium_ttfSize);
 
-    rightClickFwd.callback = [this] { showContextMenu(); };
+    rightClickFwd.callback = [this] (Component* c)
+    {
+        int idx = -1;
+        for (int i = 0; i < DoornAudioProcessor::numKnobs; ++i)
+            if (c == &knobs[i]) idx = i;
+        showContextMenu (idx);
+    };
 
     for (int i = 0; i < DoornAudioProcessor::numKnobs; ++i)
     {
@@ -258,15 +264,16 @@ DoornAudioProcessorEditor::DoornAudioProcessorEditor (DoornAudioProcessor& p)
         knobAtt[i] = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (proc.apvts, DoornAudioProcessor::knobId (i), s);
     }
 
+    eqSwitch.onRightClick   = [this] { showContextMenu (6); };
+    modeSwitch.onRightClick = [this] { showContextMenu (7); };
     for (auto* l : { &eqSwitch, &modeSwitch })
     {
         l->strip = strip;
-        l->onRightClick = [this] { showContextMenu(); };
         l->onUserChange = [this] { proc.currentPreset = -1; };
         addAndMakeVisible (*l);
     }
-    boostFs.onRightClick  = [this] { showContextMenu(); };
-    bypassFs.onRightClick = [this] { showContextMenu(); };
+    boostFs.onRightClick  = [this] { showContextMenu (8); };
+    bypassFs.onRightClick = [this] { showContextMenu (9); };
     boostFs.onUserChange  = [this] { proc.currentPreset = -1; };
     addAndMakeVisible (boostFs);
     addAndMakeVisible (bypassFs);
@@ -467,9 +474,26 @@ void DoornAudioProcessorEditor::timerCallback()
     }
     const int pcount = proc.presetCounter.load();
     if (pcount != lastPresetCounter) { lastPresetCounter = pcount; numChanged = 0; }   // preset : affiche dans la barre de presets
-    if (numChanged == 1) { lastChanged = changed; showStatus(); }
+    if (numChanged == 1) { lastChanged = changed; showStatus(); learnLineUntil = 0.0; }
     for (int i = 0; i < DoornAudioProcessor::numKnobs; ++i)
-        if (knobs[i].isMouseButtonDown()) { lastChanged = i; showStatus(); }
+        if (knobs[i].isMouseButtonDown()) { lastChanged = i; showStatus(); learnLineUntil = 0.0; }
+    // MIDI Learn : attente puis confirmation 2 s dans la ligne d'etat
+    const int lt = proc.learnTarget.load();
+    const int learned = proc.lastLearned.exchange (-1);
+    if (learned >= 0)
+    {
+        const int cc = proc.ccMap[learned].load();
+        learnLine = String (DoornAudioProcessor::learnDef (learned).name) + " = CC " + String (cc);
+        learnLineUntil = now + 2000.0;
+        statusUntil = jmax (statusUntil, learnLineUntil);
+    }
+    else if (lt >= 0)
+    {
+        learnLine = "MIDI LEARN: move a control for " + String (DoornAudioProcessor::learnDef (lt).name);
+        learnLineUntil = now + 200.0;
+        statusUntil = jmax (statusUntil, now + 200.0);
+    }
+
     const int mc = proc.midiCounter.load();
     if (mc != lastMidiCount) { lastMidiCount = mc; midiFlash = 8; }
     if (midiFlash > 0) --midiFlash;
@@ -502,7 +526,8 @@ void DoornAudioProcessorEditor::timerCallback()
         askRepaint (scaled (glowRect));
     }
 
-    const auto l1 = buildStatusLine(), pl = buildPresetLine();
+    // (le message de learn reste pendant le fondu de sortie)
+    const auto l1 = (learnLineUntil > 0.0 && now < learnLineUntil + 800.0 ? learnLine : buildStatusLine()), pl = buildPresetLine();
     const bool textChanged = l1 != lastLine1;
     lastLine1 = l1;
     if (std::abs (statusAlpha - drawnStatus) > 0.003f || (statusAlpha > 0.0f && textChanged))
@@ -565,10 +590,12 @@ void DoornAudioProcessorEditor::drawStatus (Graphics& g)
     g.setColour (Colour (0xffb79f6e).withAlpha (0.45f * a));       // filet couleur des fissures dorees
     g.drawRoundedRectangle (statusRect.reduced (0.75f), 9.0f, 1.3f);
 
-    const Font f (FontOptions (labelFace).withHeight (38.0f));
+    // messages MIDI Learn plus longs : meme police, plus petite, sur deux lignes au besoin
+    const bool longLine = lastLine1.length() > 18;
+    const Font f (FontOptions (labelFace).withHeight (longLine ? 21.0f : 38.0f));
     g.setFont (f);
     g.setColour (inkWhite.withAlpha (a));
-    g.drawFittedText (lastLine1, statusRect.reduced (10.0f, 0.0f).toNearestInt(), Justification::centred, 1, 0.75f);
+    g.drawFittedText (lastLine1, statusRect.reduced (10.0f, 0.0f).toNearestInt(), Justification::centred, longLine ? 2 : 1, 0.75f);
 }
 
 void DoornAudioProcessorEditor::drawPresetBar (Graphics& g)
@@ -696,9 +723,38 @@ void DoornAudioProcessorEditor::showPresetMenu()
         });
 }
 
-void DoornAudioProcessorEditor::showContextMenu()
+void DoornAudioProcessorEditor::addMidiMenu (PopupMenu& menu, int learnIdx)
+{
+    auto ccText = [this] (int i)
+    {
+        const int cc = proc.ccMap[i].load();
+        return cc >= 0 ? "CC " + String (cc) : String (CharPointer_UTF8 ("\xe2\x80\x94"));
+    };
+    const int lt = proc.learnTarget.load();
+
+    // clic droit sur une commande : MIDI Learn de cette commande en tete du menu
+    if (learnIdx >= 0)
+    {
+        const String name = DoornAudioProcessor::learnDef (learnIdx).name;
+        menu.addItem (1000 + learnIdx, "MIDI Learn: " + name + " (" + ccText (learnIdx) + ")", true, lt == learnIdx);
+        menu.addItem (1100 + learnIdx, "Clear MIDI: " + name, proc.ccMap[learnIdx].load() >= 0);
+        if (lt >= 0) menu.addItem (1200, "Cancel MIDI learn");
+        menu.addSeparator();
+    }
+}
+
+void DoornAudioProcessorEditor::handleMidiMenu (int r)
+{
+    if (r >= 1000 && r < 1000 + DoornAudioProcessor::numLearn)      proc.learnTarget.store (r - 1000);
+    else if (r >= 1100 && r < 1100 + DoornAudioProcessor::numLearn) { proc.ccMap[r - 1100].store (-1); }
+    else if (r == 1200) proc.learnTarget.store (-1);
+    else if (r == 1201) { proc.learnTarget.store (-1); proc.resetMidiMap(); }
+}
+
+void DoornAudioProcessorEditor::showContextMenu (int learnIdx)
 {
     PopupMenu menu;
+    addMidiMenu (menu, learnIdx);
     PopupMenu sizes;
     const int defaultW = roundToInt ((float) defaultH * (float) baseW / (float) baseH);
     sizes.addItem (1, "Default (" + String (defaultW) + " x " + String (defaultH) + ")", true, getHeight() == defaultH);
@@ -736,19 +792,20 @@ void DoornAudioProcessorEditor::showContextMenu()
     menu.addSubMenu ("Settings", settings);
 
     PopupMenu midi;
-    midi.addItem (900, "CC 20  Gain",  false);
-    midi.addItem (901, "CC 21  Boost level", false);
-    midi.addItem (902, "CC 22  Level", false);
-    midi.addItem (903, "CC 23  Treble", false);
-    midi.addItem (904, "CC 24  Mids",  false);
-    midi.addItem (905, "CC 25  Bass",  false);
-    midi.addItem (906, "CC 26  EQ (64+ on)", false);
-    midi.addItem (907, "CC 27  Mode (0-42 SDT-2 / 43-84 Laerm / 85+ SDT-1)", false);
-    midi.addItem (908, "CC 28  Boost footswitch", false);
-    midi.addItem (909, "CC 29  Bypass footswitch", false);
-    midi.addItem (910, "CC 52-57  fine (14-bit) for CC 20-25", false);
-    midi.addItem (911, "Program Change 1-10  Factory presets", false);
-    menu.addSubMenu ("MIDI map", midi);
+    for (int i = 0; i < DoornAudioProcessor::numLearn; ++i)
+    {
+        const int cc = proc.ccMap[i].load();
+        midi.addItem (1000 + i, "Learn: " + String (DoornAudioProcessor::learnDef (i).name)
+                                 + " (" + (cc >= 0 ? "CC " + String (cc) : String (CharPointer_UTF8 ("\xe2\x80\x94"))) + ")",
+                      true, proc.learnTarget.load() == i);
+    }
+    midi.addSeparator();
+    if (proc.learnTarget.load() >= 0) midi.addItem (1200, "Cancel MIDI learn");
+    midi.addItem (1201, "Reset MIDI to defaults (CC 20-29)");
+    midi.addSeparator();
+    midi.addItem (910, "CC n+32 = fine (14-bit) for knobs on CC 0-31", false);
+    midi.addItem (911, "Program Change 1-13  Factory presets", false);
+    menu.addSubMenu ("MIDI", midi);
     menu.addSeparator();
     menu.addItem (999, "Doorn distortion v" + String (JucePlugin_VersionString) + " - STUDIO WIGA", false);
 
@@ -768,6 +825,7 @@ void DoornAudioProcessorEditor::showContextMenu()
             else if (r >= 100 && r < 200) pr.applyFactoryPreset (r - 100);
             else if (r > 200 && r < 300)  pr.loadUserPreset (r - 200);
             else if (r > 300 && r < 400)  pr.saveUserPreset (r - 300);
+            else if (r >= 1000) { ed.handleMidiMenu (r); return; }
             ed.showStatus();
         });
 }

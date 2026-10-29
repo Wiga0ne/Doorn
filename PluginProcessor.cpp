@@ -38,6 +38,29 @@ const char* DoornAudioProcessor::knobId (int i)
     return ids[jlimit (0, numKnobs - 1, i)];
 }
 
+const DoornAudioProcessor::LearnDef& DoornAudioProcessor::learnDef (int i)
+{
+    static const LearnDef defs[numLearn] =
+    {
+        { "gain",    "Gain",             ccGain,     learnContinuous, 0 },
+        { "boost",   "Boost",            ccBoost,    learnContinuous, 0 },
+        { "level",   "Level",            ccLevel,    learnContinuous, 0 },
+        { "treble",  "Treble",           ccTreble,   learnContinuous, 0 },
+        { "mids",    "Mids",             ccMids,     learnContinuous, 0 },
+        { "bass",    "Bass",             ccBass,     learnContinuous, 0 },
+        { "eq",      "EQ",               ccEq,       learnToggle,     2 },   // >= 64 : EQ on
+        { "mode",    "Mode",             ccMode,     learnSelector,   3 },   // 0-42 SDT-2, 43-84 Laerm, 85-127 SDT-1
+        { "boostOn", "Boost footswitch", ccBoostFs,  learnFootswitch, 0 },
+        { "active",  "Bypass",           ccBypassFs, learnFootswitch, 0 },
+    };
+    return defs[jlimit (0, numLearn - 1, i)];
+}
+
+void DoornAudioProcessor::resetMidiMap()
+{
+    for (int i = 0; i < numLearn; ++i) ccMap[i].store (learnDef (i).defaultCC);
+}
+
 //==============================================================================
 DoornAudioProcessor::DoornAudioProcessor()
     : AudioProcessor (BusesProperties()
@@ -48,6 +71,7 @@ DoornAudioProcessor::DoornAudioProcessor()
     setLatencySamples (doorn::Engine::latencyInt());
     for (int i = 0; i < numRaw; ++i) rawPtr[i] = apvts.getRawParameterValue (rawIds[i]);
     for (int i = 0; i < numQueued; ++i) { pendingValue[i] = 0.0f; pendingSet[i] = false; }
+    resetMidiMap();
     startTimerHz (60);
 }
 
@@ -182,27 +206,51 @@ void DoornAudioProcessor::handleMidi (MidiBuffer& midi, int numSamples)
                 currentPreset = -1;
             };
 
-            if (cc >= ccGain && cc <= ccBass)
+            // MIDI Learn : le premier CC recu est affecte a la commande visee (il n'agit pas sur le son)
+            const int lt = learnTarget.load();
+            if (lt >= 0 && lt < numLearn && cc < 120)
             {
-                const int k = cc - ccGain;
-                ramps[k].msb = v;
-                knobFromCC (k, (float) v / 127.0f);
+                for (int j = 0; j < numLearn; ++j)
+                    if (j != lt && ccMap[j].load() == cc) ccMap[j].store (-1);   // numero deja pris : l'autre commande est desassignee
+                ccMap[lt].store (cc);
+                if (lt < numKnobs) ramps[lt].msb = -1;
+                if (learnDef (lt).type == learnFootswitch) prevFsCC[lt] = v;
+                lastLearned.store (lt);
+                learnTarget.store (-1);
+                lastMidiCC = cc; lastMidiValue = v; ++midiCounter;
+                continue;
             }
-            else if (cc >= ccGain + 32 && cc <= ccBass + 32)
+
+            int ctl = -1;
+            for (int j = 0; j < numLearn; ++j)
+                if (ccMap[j].load (std::memory_order_relaxed) == cc) { ctl = j; break; }
+            int lsbOf = -1;
+            if (ctl < 0)
+                for (int k = 0; k < numKnobs; ++k)
+                {
+                    const int msbCC = ccMap[k].load (std::memory_order_relaxed);
+                    if (msbCC >= 0 && msbCC < 32 && cc == msbCC + 32) { lsbOf = k; break; }
+                }
+
+            if (ctl >= 0 && ctl < numKnobs)
+            {
+                ramps[ctl].msb = v;
+                knobFromCC (ctl, (float) v / 127.0f);
+            }
+            else if (lsbOf >= 0)
             {
                 // CC 14 bits (CC n + CC n+32) : resolution fine si la pedale l'envoie
-                const int k = cc - 32 - ccGain;
-                if (ramps[k].msb >= 0)
-                    knobFromCC (k, (float) (ramps[k].msb * 128 + v) / 16383.0f);
+                if (ramps[lsbOf].msb >= 0)
+                    knobFromCC (lsbOf, (float) (ramps[lsbOf].msb * 128 + v) / 16383.0f);
             }
-            else if (cc == ccEq)   { setParamFromAudio ("eq", v >= 64 ? 1.0f : 0.0f); currentPreset = -1; }
-            else if (cc == ccMode) { setParamFromAudio ("mode", v < 43 ? 0.0f : (v < 85 ? 1.0f : 2.0f)); currentPreset = -1; }
-            else if (cc == ccBoostFs || cc == ccBypassFs)
+            else if (ctl == 6) { setParamFromAudio ("eq", v >= 64 ? 1.0f : 0.0f); currentPreset = -1; }
+            else if (ctl == 7) { setParamFromAudio ("mode", v < 43 ? 0.0f : (v < 85 ? 1.0f : 2.0f)); currentPreset = -1; }
+            else if (ctl == 8 || ctl == 9)
             {
-                const char* id = cc == ccBoostFs ? "boostOn" : "active";
-                int& prev = cc == ccBoostFs ? prevBoostCC : prevBypassCC;
+                const char* id = learnDef (ctl).id;
+                int& prev = prevFsCC[ctl];
                 // etat courant = valeur en file si elle existe (bascules rapides sans attendre le timer)
-                const int qi = cc == ccBoostFs ? 8 : 9;
+                const int qi = ctl;
                 const float cur = pendingSet[qi].load() ? pendingValue[qi].load() : raw (id);
                 if (latching)                   setParamFromAudio (id, v >= 64 ? 1.0f : 0.0f);
                 else if (v >= 64 && prev < 64)  setParamFromAudio (id, cur > 0.5f ? 0.0f : 1.0f);
@@ -354,6 +402,8 @@ void DoornAudioProcessor::getStateInformation (MemoryBlock& dest)
 {
     auto state = apvts.copyState();
     state.setProperty ("currentPreset", currentPreset.load(), nullptr);
+    for (int i = 0; i < numLearn; ++i)
+        state.setProperty (String ("cc_") + learnDef (i).id, ccMap[i].load(), nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary (*xml, dest);
 }
 
@@ -364,6 +414,9 @@ void DoornAudioProcessor::setStateInformation (const void* data, int size)
         {
             auto state = ValueTree::fromXml (*xml);
             currentPreset = (int) state.getProperty ("currentPreset", 0);
+            // assignations MIDI Learn (ancien projet sans ces proprietes : numeros par defaut 20 a 29)
+            for (int i = 0; i < numLearn; ++i)
+                ccMap[i].store (jlimit (-1, 127, (int) state.getProperty (String ("cc_") + learnDef (i).id, learnDef (i).defaultCC)));
             apvts.replaceState (state);
             ++presetCounter;
         }

@@ -72,10 +72,10 @@ private:
 //==============================================================================
 struct RightClickForwarder : public juce::MouseListener
 {
-    std::function<void()> callback;
+    std::function<void (juce::Component*)> callback;    // composant clique (potard) : menu MIDI Learn de cette commande
     void mouseDown (const juce::MouseEvent& e) override
     {
-        if (e.mods.isPopupMenu() && callback) callback();
+        if (e.mods.isPopupMenu() && callback) callback (e.eventComponent);
     }
 };
 
@@ -105,7 +105,9 @@ public:
 private:
     void timerCallback() override;
     void useSoftwareRenderer();
-    void showContextMenu();
+    void showContextMenu (int learnIdx = -1);     // learnIdx >= 0 : clic droit sur une commande (MIDI Learn en tete du menu)
+    void addMidiMenu (juce::PopupMenu& menu, int learnIdx);
+    void handleMidiMenu (int r);
     void showPresetMenu();
     void stepPreset (int delta);
     void rebuildCaches (float scale = 0.0f);
@@ -144,6 +146,9 @@ private:
     float statusAlpha = 0.0f, drawnStatus = -1.0f;
     double statusUntil = 0.0;
     juce::String lastLine1, lastPreset;
+    // MIDI Learn : message dans la ligne d'etat (attente, puis « <Commande> = CC n » 2 s)
+    juce::String learnLine;
+    double learnLineUntil = 0.0;
     float lastValues[16];
     int lastPresetCounter = 0, lastMidiCount = 0, midiFlash = 0;
     int hoverZone = 0, drawnHover = -1;       // 1 = fleche gauche, 2 = nom, 3 = fleche droite

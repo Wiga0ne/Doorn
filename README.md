@@ -49,6 +49,9 @@ Kurt Ballou), guide de montage GCI Brutalist Jr (clone de la SDT-1), photo du ci
 
 ## MIDI
 
+v2.12.0 : MIDI Learn sur toutes les commandes (clic droit sur une commande ou menu MIDI), assignations sauvegardées avec le projet.
+Numéros par défaut ci-dessous (ceux des versions précédentes) ; clic droit > *MIDI* > *Reset MIDI to defaults* pour y revenir.
+
 | Message | Fonction |
 |---|---|
 | CC 20 / 21 / 22 | Gain / Boost (niveau) / Level |
