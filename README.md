@@ -100,3 +100,5 @@ YouTube normalise le volume (les niveaux relatifs ne sont pas mesurables). Donn�
 - `tools/make_background.py` (fond), `tools/switch_photo.py` (inverseurs), `tools/controls_art.py` (footswitch), `tools/render/` (captures de la vraie fenêtre sous Linux).
 - `design/` : visuel fourni, photo du circuit imprimé, photo des switchs.
 - Polices : Poppins (ligne d'état), Fondamento et Alegreya SC (inscriptions du fond) (SIL Open Font License, `assets/OFL_*.txt`).
+
+- v2.12.1 : menu de taille de fenêtre : « 60 % (default) », 75 %, 100 % (plus de taille en pixels)
